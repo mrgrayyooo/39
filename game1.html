@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Поле Глагола — Тридевятое Царство</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a1a0a;font-family:'Press Start 2P',monospace}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+#gc{position:absolute;top:0;left:0;width:100%;height:100%}
+
+/* HUD */
+#hud{position:absolute;top:0;left:0;right:0;padding:10px 14px;pointer-events:none;z-index:10}
+.hud-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hud-quote{background:rgba(0,20,15,.85);border:1px solid rgba(230,190,50,.35);border-radius:8px;padding:8px 14px;flex:1;backdrop-filter:blur(6px)}
+.hud-quote-text{font-family:'Cinzel',serif;font-size:clamp(9px,1.5vw,13px);color:rgba(248,244,232,.7);font-style:italic;margin-bottom:6px;line-height:1.4}
+.hud-word{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.hud-letter{width:28px;height:32px;border-bottom:2px solid #e6be32;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:13px;color:#e6be32;background:rgba(230,190,50,.08);border-radius:3px 3px 0 0;transition:all .3s}
+.hud-letter.collected{background:rgba(230,190,50,.3);border-color:#f0d060;color:#fff;animation:popIn .3s ease}
+.hud-score{background:rgba(0,20,15,.85);border:1px solid rgba(230,190,50,.35);border-radius:8px;padding:8px 14px;text-align:center;backdrop-filter:blur(6px);min-width:90px}
+.hud-score-label{font-size:8px;color:rgba(230,190,50,.6);margin-bottom:4px;letter-spacing:1px}
+.hud-score-val{font-size:14px;color:#e6be32}
+.hud-controls{font-size:8px;color:rgba(248,244,232,.35);text-align:center;margin-top:6px;letter-spacing:1px}
+
+/* MOBILE DPAD */
+#dpad{position:absolute;bottom:28px;left:24px;width:120px;height:120px;pointer-events:auto;z-index:20;user-select:none}
+.dp-btn{position:absolute;width:38px;height:38px;background:rgba(0,20,15,.75);border:1px solid rgba(230,190,50,.35);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:none;transition:background .1s;font-size:16px;backdrop-filter:blur(4px)}
+.dp-btn:active,.dp-btn.pressed{background:rgba(230,190,50,.3);border-color:rgba(230,190,50,.7)}
+#dp-up{top:0;left:41px}
+#dp-down{bottom:0;left:41px}
+#dp-left{left:0;top:41px}
+#dp-right{right:0;top:41px}
+#dp-center{left:41px;top:41px;background:rgba(230,190,50,.1);pointer-events:none}
+
+/* OVERLAYS */
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;background:rgba(0,15,10,.88);backdrop-filter:blur(12px);transition:opacity .4s;padding:20px;text-align:center}
+.overlay.hidden{opacity:0;pointer-events:none}
+.ov-icon{font-size:64px;margin-bottom:16px;animation:float 2s ease infinite}
+.ov-title{font-family:'Cinzel Decorative',serif;font-size:clamp(20px,4vw,36px);color:#e6be32;margin-bottom:10px;text-shadow:0 0 30px rgba(230,190,50,.4)}
+.ov-sub{font-family:'Cinzel',serif;font-size:clamp(11px,1.8vw,16px);color:rgba(248,244,232,.75);margin-bottom:8px;max-width:500px;line-height:1.6}
+.ov-quote{font-family:'Cinzel',serif;font-size:clamp(10px,1.5vw,14px);font-style:italic;color:rgba(230,190,50,.75);margin-bottom:28px;max-width:480px;line-height:1.65}
+.ov-btn{display:inline-flex;align-items:center;gap:8px;background:var(--gold,#e6be32);color:#001510;font-family:'Cinzel',serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:14px 32px;border-radius:3px;border:none;cursor:pointer;transition:all .3s;text-decoration:none;margin:6px}
+.ov-btn:hover{box-shadow:0 0 30px rgba(230,190,50,.5);transform:translateY(-2px)}
+.ov-btn.outline{background:transparent;color:#e6be32;border:1px solid #e6be32}
+.ov-btn.outline:hover{background:rgba(230,190,50,.1)}
+.win-word{font-family:'Press Start 2P',monospace;font-size:clamp(24px,5vw,48px);color:#e6be32;letter-spacing:8px;text-shadow:0 0 30px rgba(230,190,50,.6);margin-bottom:20px;animation:glow 1.5s ease infinite}
+
+/* LETTER COLLECT FX */
+.collect-fx{position:absolute;pointer-events:none;z-index:15;font-family:'Press Start 2P',monospace;font-size:16px;color:#e6be32;text-shadow:0 0 10px rgba(230,190,50,.8);animation:collectAnim .8s ease forwards}
+
+@keyframes popIn{0%{transform:scale(1.5)}100%{transform:scale(1)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes collectAnim{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(1.5)}}
+@keyframes glow{0%,100%{text-shadow:0 0 30px rgba(230,190,50,.5)}50%{text-shadow:0 0 60px rgba(230,190,50,1),0 0 100px rgba(230,190,50,.4)}}
+@media(min-width:768px){#dpad{display:none}}
+</style>
+</head>
+<body>
+
+<canvas id="gc"></canvas>
+
+<div id="hud">
+  <div class="hud-top">
+    <div class="hud-quote">
+      <div class="hud-quote-text" id="hud-quote-text"></div>
+      <div class="hud-word" id="hud-word"></div>
+    </div>
+    <div class="hud-score">
+      <div class="hud-score-label">СЧЁТ</div>
+      <div class="hud-score-val" id="hud-score">0</div>
+    </div>
+  </div>
+  <div class="hud-controls">WASD / ↑↓←→ — движение</div>
+</div>
+
+<div id="dpad">
+  <div class="dp-btn" id="dp-up">▲</div>
+  <div class="dp-btn" id="dp-down">▼</div>
+  <div class="dp-btn" id="dp-left">◀</div>
+  <div class="dp-btn" id="dp-right">▶</div>
+  <div class="dp-btn" id="dp-center" style="font-size:10px;color:rgba(230,190,50,.4);">🌾</div>
+</div>
+
+<!-- Start Overlay -->
+<div class="overlay" id="ov-start">
+  <div class="ov-icon">🌾</div>
+  <div class="ov-title">Поле Глагола</div>
+  <div class="ov-sub">Управляй комбайном и собирай буквы,<br>чтобы сложить недостающее слово из сказки Пушкина!</div>
+  <div class="ov-quote" id="start-quote"></div>
+  <button class="ov-btn" id="btn-start">Начать игру</button>
+  <a href="index.html" class="ov-btn outline">← На главную</a>
+</div>
+
+<!-- Win Overlay -->
+<div class="overlay hidden" id="ov-win">
+  <div class="ov-icon">🏆</div>
+  <div class="ov-title">Слово собрано!</div>
+  <div class="win-word" id="win-word"></div>
+  <div class="ov-quote" id="win-quote"></div>
+  <button class="ov-btn" id="btn-next">Следующее слово</button>
+  <a href="index.html" class="ov-btn outline">← На главную</a>
+</div>
+
+<script>
+const canvas=document.getElementById('gc');
+const ctx=canvas.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+
+// --- CONSTANTS ---
+const T=32; // tile size
+const MW=100,MH=100; // map size in tiles
+const ROAD=0,RIVER=1,FOREST=2,WHEAT=3,HARVESTED=4,PATH=5;
+
+// --- PUSHKIN WORDS ---
+const WORDS=[
+  {quote:'«А сама-то величава, выступает, будто [____]...»',word:'ПАВА',full:'«А сама-то величава, / Выступает, будто пава...»'},
+  {quote:'«В синем небе звёзды блещут, в синем [____] волны хлещут...»',word:'МОРЕ',full:'«В синем небе звёзды блещут, / В синем море волны хлещут...»'},
+  {quote:'«...Ветер по морю [______], и кораблик подгоняет...»',word:'ГУЛЯЕТ',full:'«Ветер по морю гуляет / И кораблик подгоняет...»'},
+  {quote:'«...Белка там живёт [______], белка песенки поёт...»',word:'РУЧНАЯ',full:'«Белка там живёт ручная, / Да затейница какая!»'},
+  {quote:'«...Кот учёный всё ходит по [_____]...»',word:'КРУГУ',full:'«Кот учёный всё ходит по кругу...»'},
+  {quote:'«...У лукоморья дуб [_______]...»',word:'ЗЕЛЁНЫЙ',full:'«У лукоморья дуб зелёный; / Златая цепь на дубе том...»'},
+];
+
+// --- GAME STATE ---
+let map=[],letters=[],player={},camera={},keys={},score=0,currentWord=null,collected=[],gameRunning=false,touchDir={up:false,down:false,left:false,right:false};
+
+// --- COLORS ---
+const COLORS={
+  [ROAD]:'#5a5a5a',[RIVER]:'#2060a0',[FOREST]:'#1a3a12',[WHEAT]:'#8a6a20',[HARVESTED]:'#5a3a10',[PATH]:'#6a6a40',
+  road2:'#686868',river2:'#3070b5',forest2:'#2a5020',wheat1:'#9a7a30',wheat2:'#7a5a14',wheat3:'#a08028',
+};
+
+// --- MAP GENERATION ---
+function genMap(){
+  map=[];
+  const rng=seededRand(Date.now());
+  for(let y=0;y<MH;y++){
+    map[y]=[];
+    for(let x=0;x<MW;x++){
+      if(y<4)map[y][x]=ROAD;
+      else if(y>=MH-4)map[y][x]=ROAD;
+      else if(x<4)map[y][x]=RIVER;
+      else if(x>=MW-6)map[y][x]=FOREST;
+      else if((y===4||y===MH-5)&&x>3&&x<MW-6)map[y][x]=PATH;
+      else map[y][x]=WHEAT;
+    }
+  }
+  // Add random details
+  for(let i=0;i<80;i++){
+    const x=4+Math.floor(rng()*( MW-12));
+    const y=5+Math.floor(rng()*(MH-12));
+    if(map[y][x]===WHEAT)map[y][x]=WHEAT; // could add paths
+  }
+}
+
+function seededRand(seed){
+  let s=seed;
+  return function(){s=(s*16807+0)%2147483647;return(s-1)/2147483646;};
+}
+
+// --- LETTER SPAWNING ---
+function spawnLetters(word){
+  letters=[];
+  const rng=seededRand(Date.now()+42);
+  const needed=word.split('').map(c=>({char:c,collected:false}));
+  // Also add distractors
+  const distractors='БВГДЖЗИЛМНОПРСТУХЦЧШЩЪЫЬЭЮЯЕ'.split('').slice(0,8);
+  const allChars=[...needed.map(n=>n.char),...distractors.slice(0,6)];
+  // Shuffle and place on field
+  allChars.sort(()=>rng()-.5);
+  const placed=[];
+  allChars.forEach(ch=>{
+    let tries=0;
+    while(tries<100){
+      const tx=8+Math.floor(rng()*(MW-20));
+      const ty=8+Math.floor(rng()*(MH-20));
+      if(map[ty]&&map[ty][tx]===WHEAT){
+        const key=tx+','+ty;
+        if(!placed.includes(key)){
+          placed.push(key);
+          letters.push({x:tx*T+T/2,y:ty*T+T/2,char:ch,collected:false,isTarget:word.includes(ch)&&needed.find(n=>n.char===ch&&!placed.some(p=>p===tx+','+ty)),pulse:rng()*Math.PI*2,scale:1});
+          break;
+        }
+      }
+      tries++;
+    }
+  });
+}
+
+// --- PLAYER ---
+function initPlayer(){
+  player={x:(MW/2)*T+T/2,y:(MH/2)*T+T/2,vx:0,vy:0,speed:3.5*T,dir:0,w:44,h:32,harvestTrail:[]};
+}
+
+// --- CAMERA ---
+function updateCamera(){
+  const tw=canvas.width,th=canvas.height;
+  camera.x=player.x-tw/2;
+  camera.y=player.y-th/2;
+  camera.x=Math.max(0,Math.min(camera.x,MW*T-tw));
+  camera.y=Math.max(0,Math.min(camera.y,MH*T-th));
+}
+
+// --- DRAW TILE ---
+function drawTile(x,y,type,tileVariant){
+  const wx=x*T-camera.x,wy=y*T-camera.y;
+  if(wx<-T||wy<-T||wx>canvas.width+T||wy>canvas.height+T)return;
+  const v=tileVariant||(x*3+y*7)%4;
+  switch(type){
+    case ROAD:
+      ctx.fillStyle=v<2?COLORS[ROAD]:COLORS.road2;
+      ctx.fillRect(wx,wy,T,T);
+      if(y===1||y===MH-3){// white lines
+        ctx.fillStyle='rgba(255,255,255,.6)';
+        ctx.fillRect(wx,wy+T/2-1,T,2);
+      }
+      break;
+    case PATH:
+      ctx.fillStyle=COLORS[PATH];
+      ctx.fillRect(wx,wy,T,T);
+      break;
+    case RIVER:
+      ctx.fillStyle=v<2?COLORS[RIVER]:COLORS.river2;
+      ctx.fillRect(wx,wy,T,T);
+      // ripple
+      ctx.fillStyle='rgba(100,160,220,.3)';
+      const rp=(Date.now()/800+x*.3+y*.2)%1;
+      ctx.fillRect(wx+4,wy+T*rp,T-8,3);
+      break;
+    case FOREST:
+      ctx.fillStyle=v<2?COLORS[FOREST]:COLORS.forest2;
+      ctx.fillRect(wx,wy,T,T);
+      if((x+y)%2===0){
+        ctx.fillStyle='#1e5018';
+        ctx.beginPath();ctx.arc(wx+T/2,wy+T/2,10,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#2a6022';
+        ctx.beginPath();ctx.arc(wx+T/2-3,wy+T/2-3,7,0,Math.PI*2);ctx.fill();
+      }
+      break;
+    case HARVESTED:
+      ctx.fillStyle=v<2?'#4a2e08':'#3d2606';
+      ctx.fillRect(wx,wy,T,T);
+      ctx.fillStyle='rgba(100,60,10,.5)';
+      for(let i=0;i<3;i++)ctx.fillRect(wx+i*11+2,wy+4,2,T-8);
+      break;
+    case WHEAT:
+    default:
+      const wc=[COLORS.wheat1,COLORS.wheat2,COLORS.wheat3,COLORS[WHEAT]][v];
+      ctx.fillStyle=wc;
+      ctx.fillRect(wx,wy,T,T);
+      // wheat stalks
+      ctx.fillStyle='rgba(180,140,40,.7)';
+      const sw=(x*13+y*17)%5;
+      for(let i=0;i<4;i++){
+        const sx=wx+i*8+sw;
+        ctx.fillRect(sx,wy+T-10,2,10);
+        ctx.fillRect(sx-2,wy+T-16,2,6);
+      }
+      break;
+  }
+}
+
+// --- DRAW HARVESTER ---
+function drawHarvester(){
+  const sx=player.x-camera.x,sy=player.y-camera.y;
+  ctx.save();
+  ctx.translate(sx,sy);
+  
+  // Direction-based drawing
+  const d=player.dir; // 0=right,1=down,2=left,3=up
+  
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.fillRect(-20,8,44,14);
+  
+  // Body (orange/red harvester)
+  ctx.fillStyle='#c84000';
+  ctx.fillRect(-18,-14,40,28);
+  
+  // Cab (top/upper part)
+  ctx.fillStyle='#a03000';
+  ctx.fillRect(-8,-20,22,16);
+  
+  // Window
+  ctx.fillStyle='rgba(150,200,255,.6)';
+  ctx.fillRect(-4,-17,14,10);
+  
+  // Header (front cutter bar) - based on direction
+  ctx.fillStyle='#e6be32';
+  if(d===0){ctx.fillRect(22,-18,10,36);}// right
+  else if(d===2){ctx.fillRect(-32,-18,10,36);}// left
+  else if(d===3){ctx.fillRect(-22,-32,44,12);}// up
+  else{ctx.fillRect(-22,20,44,12);}// down
+  
+  // Wheels (4 corners)
+  ctx.fillStyle='#333';
+  [[-16,-12],[-16,8],[16,-12],[16,8]].forEach(([wx,wy])=>{
+    ctx.fillRect(wx-5,wy-4,10,8);
+    ctx.fillStyle='#555';
+    ctx.fillRect(wx-3,wy-2,6,4);
+    ctx.fillStyle='#333';
+  });
+  
+  // Exhaust smoke
+  ctx.fillStyle='rgba(200,200,200,.4)';
+  ctx.beginPath();ctx.arc(-2,-26+(Math.sin(Date.now()/200)*3),5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(2,-33+(Math.sin(Date.now()/200+1)*3),3,0,Math.PI*2);ctx.fill();
+  
+  ctx.restore();
+}
+
+// --- DRAW LETTER ---
+function drawLetter(l){
+  if(l.collected)return;
+  const sx=l.x-camera.x,sy=l.y-camera.y;
+  if(sx<-30||sy<-30||sx>canvas.width+30||sy>canvas.height+30)return;
+  l.pulse+=0.06;
+  const glow=0.7+0.3*Math.sin(l.pulse);
+  const isTarget=collected.findIndex(c=>!c&&false)>=0||true; // all visible
+  
+  // Glow halo
+  const grad=ctx.createRadialGradient(sx,sy,4,sx,sy,22);
+  if(l.isTarget){
+    grad.addColorStop(0,'rgba(230,190,50,'+(glow*.6)+')');
+    grad.addColorStop(1,'rgba(230,190,50,0)');
+  } else {
+    grad.addColorStop(0,'rgba(180,180,180,'+(glow*.3)+')');
+    grad.addColorStop(1,'rgba(180,180,180,0)');
+  }
+  ctx.fillStyle=grad;
+  ctx.beginPath();ctx.arc(sx,sy,22,0,Math.PI*2);ctx.fill();
+  
+  // Letter background
+  ctx.fillStyle=l.isTarget?`rgba(230,190,50,${glow*.9})`:'rgba(160,160,160,.7)';
+  ctx.fillRect(sx-12,sy-13,24,24);
+  ctx.fillStyle=l.isTarget?'rgba(100,60,0,.8)':'rgba(40,40,40,.8)';
+  ctx.fillRect(sx-10,sy-11,20,20);
+  
+  // Letter text
+  ctx.fillStyle=l.isTarget?'#fff':'#aaa';
+  ctx.font='bold 14px "Press Start 2P", monospace';
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(l.char,sx,sy+1);
+}
+
+// --- UPDATE WORD HUD ---
+function updateHUD(){
+  const wordDiv=document.getElementById('hud-word');
+  const letters_=currentWord.word.split('');
+  wordDiv.innerHTML=letters_.map((ch,i)=>`<div class="hud-letter${collected[i]?' collected':''}">${collected[i]?ch:''}</div>`).join('');
+  document.getElementById('hud-quote-text').textContent=currentWord.quote.replace('['+currentWord.word.split('').map(()=>'_').join('')+']','['+collected.map((c,i)=>c?currentWord.word[i]:'_').join('')+']');
+}
+
+// --- CHECK COLLECTION ---
+function checkCollection(){
+  const radius=T*0.85;
+  // Find how many of each char we still need
+  const need={};
+  currentWord.word.split('').forEach((c,i)=>{if(!collected[i])need[c]=(need[c]||0)+1;});
+  
+  letters.forEach(l=>{
+    if(l.collected)return;
+    const dx=l.x-player.x,dy=l.y-player.y;
+    if(Math.sqrt(dx*dx+dy*dy)<radius&&need[l.char]>0){
+      l.collected=true;
+      need[l.char]--;
+      // Find first uncollected slot for this char
+      for(let i=0;i<currentWord.word.length;i++){
+        if(!collected[i]&&currentWord.word[i]===l.char){
+          collected[i]=true;
+          break;
+        }
+      }
+      // Harvest tile
+      const tx=Math.floor(l.x/T),ty=Math.floor(l.y/T);
+      if(map[ty]&&map[ty][tx]===WHEAT)map[ty][tx]=HARVESTED;
+      
+      // FX
+      spawnFX(l.x-camera.x,l.y-camera.y,'+'+l.char);
+      
+      score+=10;
+      document.getElementById('hud-score').textContent=score;
+      updateHUD();
+      
+      // Check win
+      if(collected.every(c=>c)){
+        setTimeout(showWin,600);
+      }
+    }
+  });
+}
+
+// --- FX ---
+function spawnFX(x,y,text){
+  const el=document.createElement('div');
+  el.className='collect-fx';
+  el.textContent=text;
+  el.style.left=x+'px';
+  el.style.top=y+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+// --- WIN ---
+function showWin(){
+  gameRunning=false;
+  document.getElementById('win-word').textContent=currentWord.word;
+  document.getElementById('win-quote').textContent=currentWord.full;
+  document.getElementById('ov-win').classList.remove('hidden');
+}
+
+// --- START ROUND ---
+function startRound(){
+  const idx=Math.floor(Math.random()*WORDS.length);
+  currentWord=WORDS[idx];
+  collected=new Array(currentWord.word.length).fill(false);
+  genMap();
+  spawnLetters(currentWord.word);
+  initPlayer();
+  updateHUD();
+  document.getElementById('start-quote').textContent=currentWord.quote;
+  document.getElementById('ov-start').classList.remove('hidden');
+  document.getElementById('ov-win').classList.add('hidden');
+  gameRunning=false;
+}
+
+// --- HARVEST UNDER PLAYER ---
+function harvestUnder(){
+  const tx=Math.floor(player.x/T),ty=Math.floor(player.y/T);
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    const nx=tx+dx,ny=ty+dy;
+    if(map[ny]&&map[ny][nx]===WHEAT)map[ny][nx]=HARVESTED;
+  }
+}
+
+// --- MAIN LOOP ---
+let lastTime=0;
+function loop(ts){
+  const dt=Math.min((ts-lastTime)/1000,.05);
+  lastTime=ts;
+  
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  ctx.imageSmoothingEnabled=false;
+  
+  if(gameRunning){
+    // Input
+    let mvx=0,mvy=0;
+    if(keys['ArrowUp']||keys['KeyW']||touchDir.up){mvy=-1;player.dir=3;}
+    if(keys['ArrowDown']||keys['KeyS']||touchDir.down){mvy=1;player.dir=1;}
+    if(keys['ArrowLeft']||keys['KeyA']||touchDir.left){mvx=-1;player.dir=2;}
+    if(keys['ArrowRight']||keys['KeyD']||touchDir.right){mvx=1;player.dir=0;}
+    
+    if(mvx!==0&&mvy!==0){mvx*=0.707;mvy*=0.707;}
+    
+    const nx=player.x+mvx*player.speed*dt;
+    const ny=player.y+mvy*player.speed*dt;
+    
+    // Collision check (don't go into river/forest/road edges)
+    const collide=(px,py)=>{
+      const tx=Math.floor(px/T),ty=Math.floor(py/T);
+      if(tx<0||ty<0||tx>=MW||ty>=MH)return true;
+      const t=map[ty][tx];
+      return t===RIVER||t===FOREST||t===ROAD;
+    };
+    
+    if(!collide(nx,player.y))player.x=nx;
+    if(!collide(player.x,ny))player.y=ny;
+    player.x=Math.max(T*4.5,Math.min(player.x,T*(MW-7)));
+    player.y=Math.max(T*4.5,Math.min(player.y,T*(MH-4.5)));
+    
+    harvestUnder();
+    updateCamera();
+    checkCollection();
+  } else {
+    updateCamera();
+  }
+  
+  // --- DRAW ---
+  ctx.fillStyle='#0a1a0a';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  
+  // Tiles
+  const startX=Math.floor(camera.x/T),startY=Math.floor(camera.y/T);
+  const endX=Math.min(startX+Math.ceil(canvas.width/T)+2,MW);
+  const endY=Math.min(startY+Math.ceil(canvas.height/T)+2,MH);
+  
+  for(let y=Math.max(0,startY);y<endY;y++){
+    for(let x=Math.max(0,startX);x<endX;x++){
+      drawTile(x,y,map[y][x]);
+    }
+  }
+  
+  // Letters
+  ctx.save();
+  letters.forEach(drawLetter);
+  ctx.restore();
+  
+  // Player
+  if(gameRunning||!document.getElementById('ov-start').classList.contains('hidden')){}
+  drawHarvester();
+  
+  // Vignette
+  const vig=ctx.createRadialGradient(canvas.width/2,canvas.height/2,canvas.height*.3,canvas.width/2,canvas.height/2,canvas.height*.9);
+  vig.addColorStop(0,'rgba(0,0,0,0)');
+  vig.addColorStop(1,'rgba(0,0,0,.5)');
+  ctx.fillStyle=vig;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  
+  requestAnimationFrame(loop);
+}
+
+// --- INPUT ---
+document.addEventListener('keydown',e=>{keys[e.code]=true;e.preventDefault && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)&&e.preventDefault();});
+document.addEventListener('keyup',e=>{keys[e.code]=false;});
+
+// Touch dpad
+['up','down','left','right'].forEach(dir=>{
+  const btn=document.getElementById('dp-'+dir);
+  const start=()=>{touchDir[dir]=true;btn.classList.add('pressed')};
+  const stop=()=>{touchDir[dir]=false;btn.classList.remove('pressed')};
+  btn.addEventListener('touchstart',start,{passive:true});
+  btn.addEventListener('touchend',stop,{passive:true});
+  btn.addEventListener('touchcancel',stop,{passive:true});
+  btn.addEventListener('mousedown',start);
+  btn.addEventListener('mouseup',stop);
+  btn.addEventListener('mouseleave',stop);
+});
+
+// Buttons
+document.getElementById('btn-start').addEventListener('click',()=>{
+  document.getElementById('ov-start').classList.add('hidden');
+  gameRunning=true;
+});
+document.getElementById('btn-next').addEventListener('click',()=>{
+  startRound();
+  setTimeout(()=>{
+    document.getElementById('ov-start').classList.add('hidden');
+    gameRunning=true;
+  },100);
+});
+
+// --- INIT ---
+startRound();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
