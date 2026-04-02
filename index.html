@@ -2,346 +2,457 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>ТРИДЕВЯТОЕ ЦАРСТВО — Акт I</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
+<title>Тридевятое Царство — Вкус живого слова</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Inter', sans-serif;
-}
+:root{--bg:#00281e;--bg2:#001510;--gold:#e6be32;--gold2:#f0d060;--gold3:#b8961a;--white:#f8f4e8;--glass:rgba(0,40,30,.65);--gb:rgba(230,190,50,.18);--gs:0 8px 32px rgba(0,0,0,.45)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--white);font-family:'Cormorant Garamond',serif;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--gold3);border-radius:3px}
 
-body {
-  height: 100vh;
-  background: url("2.jpg") center/cover no-repeat;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  overflow: hidden;
-}
+/* CANVAS BG */
+#pcanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.35}
 
-/* затемнение фона */
-body::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.4);
-  z-index: 0;
-}
+/* HEADER */
+.hdr{position:fixed;top:0;left:0;right:0;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;z-index:1000;transition:background .35s,backdrop-filter .35s}
+.hdr.scrolled{background:rgba(0,18,13,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--gb)}
+.hdr-logo{height:52px;width:52px;object-fit:contain;filter:drop-shadow(0 0 10px rgba(230,190,50,.3))}
+.burger{width:46px;height:46px;background:rgba(230,190,50,.12);border:1px solid rgba(230,190,50,.28);border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;cursor:pointer;z-index:1001;transition:all .3s;backdrop-filter:blur(8px)}
+.burger:hover{background:rgba(230,190,50,.28);transform:scale(1.06)}
+.burger span{display:block;width:18px;height:1.5px;background:var(--gold);border-radius:2px;transition:all .3s}
+.burger.active span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.burger.active span:nth-child(2){opacity:0;transform:scaleX(0)}
+.burger.active span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
 
-/* --- БУРГЕР МЕНЮ И НАВИГАЦИЯ --- */
-.header-nav {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  padding: 20px 30px;
-  display: flex;
-  justify-content: flex-end;
-  z-index: 1000;
-}
+/* NAV */
+.nav{position:fixed;top:0;right:-100%;width:min(100%,400px);height:100%;background:linear-gradient(145deg,rgba(0,18,13,.98),rgba(0,35,26,.98));backdrop-filter:blur(22px);border-left:1px solid var(--gb);display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:70px 48px;gap:36px;z-index:999;transition:right .48s cubic-bezier(.4,0,.2,1)}
+.nav.active{right:0}
+.nav::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.nav a{color:var(--white);text-decoration:none;font-family:'Cinzel',serif;font-size:clamp(16px,3vw,22px);font-weight:400;letter-spacing:3px;text-transform:uppercase;transition:all .3s;position:relative;opacity:0;transform:translateX(28px)}
+.nav.active a{opacity:1;transform:translateX(0)}
+.nav.active a:nth-child(1){transition:opacity .4s .08s,transform .4s .08s,color .3s}
+.nav.active a:nth-child(2){transition:opacity .4s .14s,transform .4s .14s,color .3s}
+.nav.active a:nth-child(3){transition:opacity .4s .2s,transform .4s .2s,color .3s}
+.nav.active a:nth-child(4){transition:opacity .4s .26s,transform .4s .26s,color .3s}
+.nav.active a:nth-child(5){transition:opacity .4s .32s,transform .4s .32s,color .3s}
+.nav.active a:nth-child(6){transition:opacity .4s .38s,transform .4s .38s,color .3s}
+.nav a::after{content:'';position:absolute;bottom:-3px;left:0;width:0;height:1px;background:var(--gold);transition:width .3s}
+.nav a:hover{color:var(--gold)}.nav a:hover::after{width:100%}
 
-.burger {
-  width: 45px;
-  height: 45px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-  z-index: 1001;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  transition: transform 0.3s ease;
-}
+/* HERO */
+#hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:110px 24px 80px;overflow:hidden}
+#hero::before{content:'';position:absolute;inset:0;background:url('2.jpg') center/cover no-repeat;z-index:-2}
+#hero::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,20,15,.78) 0%,rgba(0,40,30,.55) 50%,rgba(0,20,15,.82) 100%);z-index:-1}
+.orn{position:absolute;opacity:.42;pointer-events:none}
+.orn-tl{top:16px;left:16px}.orn-tr{top:16px;right:16px;transform:scaleX(-1)}.orn-bl{bottom:16px;left:16px;transform:scaleY(-1)}.orn-br{bottom:16px;right:16px;transform:scale(-1,-1)}
+@media(max-width:600px){.orn{width:60px;height:60px}}
+.hero-eyebrow{font-family:'Cinzel',serif;font-size:clamp(9px,1.4vw,12px);letter-spacing:6px;text-transform:uppercase;color:var(--gold);margin-bottom:22px;opacity:0;animation:fadeUp 1s ease .3s forwards}
+.hero-h1{font-family:'Cinzel Decorative',serif;font-size:clamp(28px,6vw,76px);font-weight:700;line-height:1.15;text-shadow:0 0 70px rgba(230,190,50,.28);margin-bottom:20px;opacity:0;animation:fadeUp 1s ease .5s forwards}
+.hero-h1 span{color:var(--gold);display:block}
+.hero-sub{font-size:clamp(15px,2.2vw,22px);font-weight:300;font-style:italic;color:rgba(248,244,232,.82);max-width:560px;line-height:1.65;margin-bottom:44px;opacity:0;animation:fadeUp 1s ease .7s forwards}
+.cta{display:inline-flex;align-items:center;gap:10px;background:var(--gold);color:var(--bg2);text-decoration:none;font-family:'Cinzel',serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:15px 38px;border-radius:3px;transition:all .3s;opacity:0;animation:fadeUp 1s ease .9s forwards;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.18);transform:translateX(-110%);transition:transform .4s}
+.cta:hover::before{transform:translateX(0)}.cta:hover{box-shadow:0 0 40px rgba(230,190,50,.4)}
+.scroll-ind{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;opacity:0;animation:fadeIn 1s ease 1.6s forwards}
+.scroll-ind span{font-family:'Cinzel',serif;font-size:9px;letter-spacing:4px;color:rgba(230,190,50,.55);text-transform:uppercase}
+.scroll-line{width:1px;height:46px;background:linear-gradient(to bottom,var(--gold),transparent);animation:scrollPulse 2.2s ease infinite}
 
-.burger:hover {
-  transform: scale(1.05);
-}
+/* SECTIONS */
+section{position:relative;z-index:1}
+.si{max-width:1180px;margin:0 auto;padding:0 28px}
+.slabel{font-family:'Cinzel',serif;font-size:10px;letter-spacing:5px;text-transform:uppercase;color:var(--gold);margin-bottom:14px;display:block}
+.stitle{font-family:'Cinzel Decorative',serif;font-size:clamp(22px,4vw,46px);font-weight:700;line-height:1.2;margin-bottom:20px}
+.div{width:56px;height:2px;background:linear-gradient(90deg,var(--gold),transparent);margin-bottom:36px}
 
-.burger span {
-  display: block;
-  width: 20px;
-  height: 2px;
-  background-color: #002b22; /* Тот самый темно-зеленый цвет */
-  border-radius: 2px;
-  transition: all 0.3s ease;
-}
+/* ABOUT */
+#about{padding:118px 0}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+.about-text p{font-size:clamp(15px,1.8vw,19px);font-weight:300;line-height:1.85;color:rgba(248,244,232,.85);margin-bottom:18px}
+.steps{display:flex;flex-direction:column;gap:22px;margin-top:28px}
+.step{display:flex;gap:18px;align-items:flex-start}
+.step-n{flex-shrink:0;width:38px;height:38px;border:1px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:13px;color:var(--gold)}
+.step-t{font-size:16px;font-weight:300;line-height:1.6;color:rgba(248,244,232,.82);padding-top:6px}
+.about-vis{display:flex;flex-direction:column;align-items:center;gap:18px}
+.qr-frame{width:200px;height:200px;border:1px solid var(--gb);border-radius:16px;background:rgba(230,190,50,.05);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;position:relative;transition:all .35s}
+.qr-frame::before,.qr-frame::after{content:'';position:absolute;width:18px;height:18px;border-color:var(--gold);border-style:solid}
+.qr-frame::before{top:10px;left:10px;border-width:2px 0 0 2px}.qr-frame::after{bottom:10px;right:10px;border-width:0 2px 2px 0}
+.qr-frame:hover{border-color:rgba(230,190,50,.5);box-shadow:0 0 40px rgba(230,190,50,.1)}
+.qr-frame img{width:160px;height:160px;object-fit:contain}
+.qr-cap{font-size:13px;font-family:'Cinzel',serif;letter-spacing:2px;text-align:center;max-width:200px;opacity:.65}
 
-/* Анимация превращения в крестик */
-.burger.active span:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-.burger.active span:nth-child(2) {
-  opacity: 0;
-}
-.burger.active span:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
-}
+/* HEROES */
+#heroes{padding:118px 0;background:linear-gradient(180deg,rgba(0,18,13,.7) 0%,var(--bg) 100%)}
+.hgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:56px}
+.hcard{background:var(--glass);border:1px solid var(--gb);border-radius:20px;padding:28px;backdrop-filter:blur(16px);transition:all .4s;position:relative;overflow:hidden;text-decoration:none;color:var(--white);display:block}
+.hcard::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .4s}
+.hcard:hover::before{opacity:1}
+.hcard:hover{transform:translateY(-8px);border-color:rgba(230,190,50,.42);box-shadow:0 22px 60px rgba(0,0,0,.5),0 0 40px rgba(230,190,50,.06)}
+.hcard-img{width:100%;aspect-ratio:4/3;border-radius:12px;margin-bottom:18px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:52px}
+.hcard-img img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+.hcard-tag{font-family:'Cinzel',serif;font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;display:block}
+.hcard-name{font-family:'Cinzel Decorative',serif;font-size:clamp(16px,2.2vw,22px);font-weight:700;margin-bottom:10px}
+.hcard-text{font-size:15px;font-weight:300;font-style:italic;line-height:1.65;color:rgba(248,244,232,.72)}
+.play-link{margin-top:14px;display:inline-block;font-family:'Cinzel',serif;font-size:10px;letter-spacing:3px;color:var(--gold);opacity:.8;text-decoration:none;transition:opacity .3s}
+.play-link:hover{opacity:1}
 
-.menu {
-  position: fixed;
-  top: 0;
-  right: -100%;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 43, 34, 0.95); /* Зеленый цвет для фона меню */
-  backdrop-filter: blur(10px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 30px;
-  transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 999;
-}
+/* MINI PLAYER */
+.mplayer{margin-top:18px;padding:14px;background:rgba(0,0,0,.32);border-radius:12px;border:1px solid rgba(230,190,50,.14)}
+.mplayer-track{font-size:11px;font-family:'Cinzel',serif;letter-spacing:2px;color:var(--gold);margin-bottom:10px;text-transform:uppercase}
+.mplayer-ctrl{display:flex;align-items:center;gap:10px}
+.mplay-btn{width:38px;height:38px;border-radius:50%;border:none;background:var(--gold);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .3s}
+.mplay-btn:hover{transform:scale(1.1);box-shadow:0 0 18px rgba(230,190,50,.5)}
+.mplay-btn svg{width:14px;height:14px;fill:var(--bg2)}
+.mprog-wrap{flex:1}
+.mprog{width:100%;height:4px;background:rgba(255,255,255,.14);border-radius:10px;cursor:pointer;margin-bottom:4px}
+.mbar{height:100%;width:0%;background:var(--gold);border-radius:10px;pointer-events:none}
+.mtime{font-size:10px;opacity:.6;display:flex;justify-content:space-between}
 
-@media (min-width: 768px) {
-  .menu {
-    width: 350px; /* На ПК выезжает сбоку */
-    border-left: 1px solid rgba(255,255,255,0.1);
-  }
-}
+/* GAMES */
+#games{padding:118px 0}
+.ggrid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:52px}
+.gcard{background:var(--glass);border:1px solid var(--gb);border-radius:20px;overflow:hidden;transition:all .4s;text-decoration:none;color:var(--white);display:block}
+.gcard:hover{transform:translateY(-8px);border-color:rgba(230,190,50,.48);box-shadow:0 22px 60px rgba(0,0,0,.5)}
+.gcard-prev{width:100%;height:170px;display:flex;align-items:center;justify-content:center;font-size:60px;position:relative}
+.gcard-prev::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.4));pointer-events:none}
+.gcard-body{padding:22px}
+.gcard-num{font-family:'Cinzel',serif;font-size:10px;letter-spacing:4px;color:var(--gold);margin-bottom:7px}
+.gcard-title{font-family:'Cinzel Decorative',serif;font-size:17px;font-weight:700;margin-bottom:9px}
+.gcard-desc{font-size:14px;font-weight:300;font-style:italic;line-height:1.65;color:rgba(248,244,232,.7);margin-bottom:18px}
+.gbtn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--gold);color:var(--gold);font-family:'Cinzel',serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:9px 18px;border-radius:3px;text-decoration:none;transition:all .3s}
+.gbtn:hover{background:var(--gold);color:var(--bg2)}
 
-.menu.active {
-  right: 0;
-}
+/* TALES TEASER */
+#tales{padding:90px 0;background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);text-align:center}
 
-.menu a {
-  color: #fff;
-  text-decoration: none;
-  font-size: 22px;
-  font-weight: 300;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  transition: opacity 0.3s;
-}
+/* QR FINAL */
+#qrf{padding:110px 0;text-align:center;background:var(--bg2);position:relative;overflow:hidden}
+#qrf::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:550px;height:550px;background:radial-gradient(circle,rgba(230,190,50,.06) 0%,transparent 70%);pointer-events:none}
+.qrf-frame{display:inline-block;padding:28px;border:1px solid var(--gb);border-radius:20px;background:var(--glass);backdrop-filter:blur(16px);margin-top:36px;transition:all .4s}
+.qrf-frame:hover{border-color:rgba(230,190,50,.4);box-shadow:0 0 60px rgba(230,190,50,.1)}
+.qrf-frame img{width:190px;height:190px;object-fit:contain;display:block}
+.qrf-cap{font-size:12px;font-family:'Cinzel',serif;letter-spacing:3px;text-transform:uppercase;color:rgba(230,190,50,.65);margin-top:16px}
 
-.menu a:hover {
-  opacity: 0.6;
-}
-/* ------------------------------- */
+/* FOOTER */
+footer{padding:40px 28px;border-top:1px solid var(--gb);text-align:center;background:var(--bg2)}
+footer p{font-size:12px;font-family:'Cinzel',serif;letter-spacing:2px;color:rgba(230,190,50,.45)}
 
-/* карточка */
-.card {
-  position: relative;
-  width: 340px;
-  padding: 28px;
-  border-radius: 20px;
-  backdrop-filter: blur(20px);
-  background: rgba(0,0,0,0.5);
-  border: 1px solid rgba(255,255,255,0.1);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
-  text-align: center;
-  animation: fadeIn 1.2s ease;
-  z-index: 10; /* Чтобы карточка была поверх фона, но под меню */
-}
+/* COOKIE */
+.cookie{position:fixed;bottom:0;left:0;right:0;background:rgba(0,18,13,.97);backdrop-filter:blur(16px);border-top:1px solid var(--gb);padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:2000;transform:translateY(100%);transition:transform .5s ease .8s}
+.cookie.show{transform:translateY(0)}
+.cookie-txt{font-size:13px;color:rgba(248,244,232,.8);line-height:1.5;max-width:560px}
+.cookie-txt a{color:var(--gold);text-decoration:none}
+.cookie-btns{display:flex;gap:10px;flex-shrink:0}
+.cbtn{border:none;padding:9px 22px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;border-radius:3px;cursor:pointer;transition:all .3s}
+.cbtn.ok{background:var(--gold);color:var(--bg2)}.cbtn.ok:hover{opacity:.9}
+.cbtn.no{background:transparent;color:rgba(248,244,232,.6);border:1px solid rgba(255,255,255,.2)}.cbtn.no:hover{border-color:rgba(255,255,255,.4)}
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(36px);transition:opacity .75s ease,transform .75s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.rd1{transition-delay:.08s}.rd2{transition-delay:.16s}.rd3{transition-delay:.24s}
 
-.title {
-  font-size: 16px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  opacity: 0.8;
-}
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scrollPulse{0%,100%{opacity:.3;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.15)}}
+@keyframes glow{0%,100%{text-shadow:0 0 40px rgba(230,190,50,.2)}50%{text-shadow:0 0 80px rgba(230,190,50,.5)}}
 
-.track {
-  font-size: 24px;
-  margin-top: 10px;
-  font-weight: 600;
-}
-
-/* ОБЛОЖКА */
-.cover {
-  margin: 20px auto;
-  width: 180px;
-  height: 180px;
-  border-radius: 16px;
-  background: url("1.png") center/contain no-repeat;
-}
-
-@keyframes float {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-.controls {
-  margin-top: 20px;
-}
-
-.play-btn {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, #ffffff, #cccccc);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-  margin: 0 auto;
-}
-
-.play-btn:hover {
-  transform: scale(1.1);
-}
-
-.play-btn svg {
-  width: 26px;
-  height: 26px;
-  display: block;
-  fill: #000; /* Цвет иконки плей */
-}
-
-/* ПРОГРЕСС */
-.progress {
-  margin-top: 20px;
-  width: 100%;
-  height: 6px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.progress-bar {
-  height: 100%;
-  width: 0%;
-  background: #fff;
-  border-radius: 10px;
-  pointer-events: none; /* Чтобы клик срабатывал точно по родительскому блоку */
-}
-
-.time {
-  margin-top: 8px;
-  font-size: 12px;
-  opacity: 0.7;
-  display: flex;
-  justify-content: space-between;
-}
-
+/* RESPONSIVE */
+@media(max-width:900px){.about-grid{grid-template-columns:1fr;gap:44px}.hgrid{grid-template-columns:1fr}.ggrid{grid-template-columns:1fr}}
+@media(max-width:600px){.cookie{flex-direction:column;text-align:center}.cookie-btns{width:100%;justify-content:center}.nav{padding:70px 30px;gap:30px}}
 </style>
 </head>
-
 <body>
 
-<header class="header-nav">
-  <div class="burger" id="burger">
-    <span></span>
-    <span></span>
-    <span></span>
+<canvas id="pcanvas"></canvas>
+
+<header class="hdr" id="hdr">
+  <img src="1.png" alt="Тридевятое Царство" class="hdr-logo" onerror="this.outerHTML='<div style=\'font-family:Cinzel Decorative,serif;font-size:13px;color:#e6be32;letter-spacing:2px;\'>ТЦ</div>'">
+  <div class="burger" id="burger" role="button" aria-label="Меню">
+    <span></span><span></span><span></span>
   </div>
 </header>
 
-<nav class="menu" id="menu">
-  <a href="#">О нас</a>
-  <a href="#">Контакты</a>
-  <a href="#">Продукция</a>
-  <a href="#">Услуги</a>
-  <a href="#">Партнерам</a>
+<nav class="nav" id="nav">
+  <a href="#about">О проекте</a>
+  <a href="#heroes">Герои</a>
+  <a href="#games">Игры</a>
+  <a href="skazki.html">Сказки</a>
+  <a href="#qrf">QR-код</a>
+  <a href="https://zalesie.ru" target="_blank" rel="noopener">Залесский Фермер ↗</a>
 </nav>
 
-<div class="card">
-  <div class="title">ТРИДЕВЯТОЕ ЦАРСТВО</div>
-  <div class="track">Сказка о царе Салтане</div>
+<section id="hero">
+  <svg class="orn orn-tl" width="100" height="100" viewBox="0 0 100 100" fill="none">
+    <path d="M8 8 Q8 50 50 50 Q8 50 8 92" stroke="#e6be32" stroke-width="1" fill="none"/>
+    <path d="M8 8 L24 8 L8 24" stroke="#e6be32" stroke-width="1.5" fill="none"/>
+    <circle cx="50" cy="50" r="2.5" fill="#e6be32"/>
+    <circle cx="8" cy="8" r="3.5" fill="none" stroke="#e6be32" stroke-width="1"/>
+    <path d="M22 22 Q36 8 48 22 Q60 36 48 48" stroke="#e6be32" stroke-width=".8" fill="none" opacity=".5"/>
+    <circle cx="18" cy="18" r="1.5" fill="#e6be32" opacity=".4"/>
+    <circle cx="34" cy="8" r="1" fill="#e6be32" opacity=".5"/>
+  </svg>
+  <svg class="orn orn-tr" width="100" height="100" viewBox="0 0 100 100" fill="none">
+    <path d="M8 8 Q8 50 50 50 Q8 50 8 92" stroke="#e6be32" stroke-width="1" fill="none"/>
+    <path d="M8 8 L24 8 L8 24" stroke="#e6be32" stroke-width="1.5" fill="none"/>
+    <circle cx="50" cy="50" r="2.5" fill="#e6be32"/>
+    <circle cx="8" cy="8" r="3.5" fill="none" stroke="#e6be32" stroke-width="1"/>
+    <path d="M22 22 Q36 8 48 22 Q60 36 48 48" stroke="#e6be32" stroke-width=".8" fill="none" opacity=".5"/>
+    <circle cx="18" cy="18" r="1.5" fill="#e6be32" opacity=".4"/>
+    <circle cx="34" cy="8" r="1" fill="#e6be32" opacity=".5"/>
+  </svg>
+  <svg class="orn orn-bl" width="100" height="100" viewBox="0 0 100 100" fill="none">
+    <path d="M8 8 Q8 50 50 50 Q8 50 8 92" stroke="#e6be32" stroke-width="1" fill="none"/>
+    <path d="M8 8 L24 8 L8 24" stroke="#e6be32" stroke-width="1.5" fill="none"/>
+    <circle cx="50" cy="50" r="2.5" fill="#e6be32"/>
+    <circle cx="8" cy="8" r="3.5" fill="none" stroke="#e6be32" stroke-width="1"/>
+    <path d="M22 22 Q36 8 48 22 Q60 36 48 48" stroke="#e6be32" stroke-width=".8" fill="none" opacity=".5"/>
+    <circle cx="18" cy="18" r="1.5" fill="#e6be32" opacity=".4"/>
+    <circle cx="34" cy="8" r="1" fill="#e6be32" opacity=".5"/>
+  </svg>
+  <svg class="orn orn-br" width="100" height="100" viewBox="0 0 100 100" fill="none">
+    <path d="M8 8 Q8 50 50 50 Q8 50 8 92" stroke="#e6be32" stroke-width="1" fill="none"/>
+    <path d="M8 8 L24 8 L8 24" stroke="#e6be32" stroke-width="1.5" fill="none"/>
+    <circle cx="50" cy="50" r="2.5" fill="#e6be32"/>
+    <circle cx="8" cy="8" r="3.5" fill="none" stroke="#e6be32" stroke-width="1"/>
+    <path d="M22 22 Q36 8 48 22 Q60 36 48 48" stroke="#e6be32" stroke-width=".8" fill="none" opacity=".5"/>
+    <circle cx="18" cy="18" r="1.5" fill="#e6be32" opacity=".4"/>
+    <circle cx="34" cy="8" r="1" fill="#e6be32" opacity=".5"/>
+  </svg>
 
-  <div class="cover"></div>
+  <span class="hero-eyebrow">Залесский Фермер × Пушкин</span>
+  <h1 class="hero-h1">Добро пожаловать<span>в Тридевятое Царство!</span></h1>
+  <p class="hero-sub">Здесь язык становится вкусным, а сказки оживают.</p>
+  <a href="#about" class="cta">Начать путешествие</a>
+  <div class="scroll-ind">
+    <span>Вниз</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
 
-  <div class="controls">
-    <button class="play-btn" id="play">
-      <svg id="icon" viewBox="0 0 24 24">
-        <path d="M8 5v14l11-7z"/>
-      </svg>
-    </button>
-
-    <div class="progress" id="progress">
-      <div class="progress-bar" id="bar"></div>
+<section id="about">
+  <div class="si">
+    <div class="about-grid">
+      <div class="about-text reveal">
+        <span class="slabel">О проекте</span>
+        <h2 class="stitle">Как это работает?</h2>
+        <div class="div"></div>
+        <p>Наведи камеру телефона на QR-код на упаковке «Залесский Фермер». Открой портал в мир, где правила русского языка объясняются сказками Пушкина.</p>
+        <div class="steps">
+          <div class="step reveal rd1">
+            <div class="step-n">I</div>
+            <div class="step-t">Найди продукцию «Залесский Фермер» с QR-кодом на упаковке</div>
+          </div>
+          <div class="step reveal rd2">
+            <div class="step-n">II</div>
+            <div class="step-t">Наведи камеру — и попадёшь прямо в сказку</div>
+          </div>
+          <div class="step reveal rd3">
+            <div class="step-n">III</div>
+            <div class="step-t">Слушай голос Тридевятого Царства, играй в игры, познавай язык</div>
+          </div>
+        </div>
+      </div>
+      <div class="about-vis reveal rd2">
+        <div class="qr-frame">
+          <img src="4.png" alt="QR-код" onerror="this.outerHTML='<div style=\'font-size:72px;opacity:.25;\'>📱</div>'">
+        </div>
+        <p class="qr-cap">Отсканируй код на упаковке</p>
+      </div>
     </div>
+  </div>
+</section>
 
-    <div class="time">
-      <span id="current">0:00</span>
-      <span id="duration">0:00</span>
+<section id="heroes">
+  <div class="si">
+    <div class="reveal">
+      <span class="slabel">Наша продукция</span>
+      <h2 class="stitle">Герои Тридевятого Царства</h2>
+      <div class="div"></div>
     </div>
+    <div class="hgrid">
+      <a href="game2.html" class="hcard reveal rd1">
+        <div class="hcard-img" style="background:linear-gradient(135deg,rgba(0,60,100,.4),rgba(0,30,60,.5));">
+          <img src="flot.png" alt="Флот" onerror="this.outerHTML='<div style=\'font-size:64px;\'>⚓</div>'">
+        </div>
+        <span class="hcard-tag">Сырок «Флот»</span>
+        <div class="hcard-name">Флот</div>
+        <p class="hcard-text">«Единственная "Ф" в сказке и прямой порядок слов»</p>
+        <span class="play-link">Играть →</span>
+      </a>
+
+      <div class="hcard reveal rd2" style="cursor:default;">
+        <div class="hcard-img" style="background:linear-gradient(135deg,rgba(60,0,80,.4),rgba(30,0,50,.5));">
+          <img src="tsarevna.png" alt="Царевна-Лебедь" onerror="this.outerHTML='<div style=\'font-size:64px;\'>🦢</div>'">
+        </div>
+        <span class="hcard-tag">Молоко «Царевна-Лебедь»</span>
+        <div class="hcard-name">Царевна-Лебедь</div>
+        <p class="hcard-text">«Глаголы действия от мастера слова»</p>
+        <div class="mplayer">
+          <div class="mplayer-track">Сказка о Царе Салтане</div>
+          <div class="mplayer-ctrl">
+            <button class="mplay-btn" id="mplay">
+              <svg id="micon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <div class="mprog-wrap">
+              <div class="mprog" id="mprog"><div class="mbar" id="mbar"></div></div>
+              <div class="mtime"><span id="mcur">0:00</span><span id="mdur">0:00</span></div>
+            </div>
+          </div>
+        </div>
+        <a href="game1.html" class="play-link">Играть →</a>
+      </div>
+
+      <a href="game3.html" class="hcard reveal rd3">
+        <div class="hcard-img" style="background:linear-gradient(135deg,rgba(80,40,0,.4),rgba(50,20,0,.5));">
+          <img src="belochka.png" alt="Белочка" onerror="this.outerHTML='<div style=\'font-size:64px;\'>🐿️</div>'">
+        </div>
+        <span class="hcard-tag">Йогурт «Белочка»</span>
+        <div class="hcard-name">Белочка</div>
+        <p class="hcard-text">«Живые слова вместо высокого штиля»</p>
+        <span class="play-link">Играть →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="games">
+  <div class="si">
+    <div class="reveal">
+      <span class="slabel">Игровая зона</span>
+      <h2 class="stitle">Проверь свои силы!</h2>
+      <div class="div"></div>
+      <p style="font-size:18px;font-weight:300;font-style:italic;color:rgba(248,244,232,.75);max-width:560px;line-height:1.7;">Хочешь стать героем сказки? Пройди испытания и получи звание знатока.</p>
+    </div>
+    <div class="ggrid">
+      <a href="game1.html" class="gcard reveal rd1">
+        <div class="gcard-prev" style="background:linear-gradient(135deg,#0d2a10,#1a5020);">🌾</div>
+        <div class="gcard-body">
+          <div class="gcard-num">Игра 01</div>
+          <div class="gcard-title">Поле Глагола</div>
+          <p class="gcard-desc">Управляй комбайном и собирай буквы на пшеничном поле</p>
+          <span class="gbtn">Играть</span>
+        </div>
+      </a>
+      <a href="game2.html" class="gcard reveal rd2">
+        <div class="gcard-prev" style="background:linear-gradient(135deg,#00122a,#001f45);">⚓</div>
+        <div class="gcard-body">
+          <div class="gcard-num">Игра 02</div>
+          <div class="gcard-title">Собери флот</div>
+          <p class="gcard-desc">Расставь корабли со словами в правильном порядке</p>
+          <span class="gbtn">Играть</span>
+        </div>
+      </a>
+      <a href="game3.html" class="gcard reveal rd3">
+        <div class="gcard-prev" style="background:linear-gradient(135deg,#1a1505,#2a2208);">🔍</div>
+        <div class="gcard-body">
+          <div class="gcard-num">Игра 03</div>
+          <div class="gcard-title">Лингвистический сыщик</div>
+          <p class="gcard-desc">Найди существительные на острове Канта за 30 секунд</p>
+          <span class="gbtn">Играть</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="tales">
+  <div class="si">
+    <div class="reveal" style="text-align:center;">
+      <span class="slabel" style="display:block;text-align:center;">Аудиотека</span>
+      <h2 class="stitle">Слушай голос Тридевятого Царства</h2>
+      <div class="div" style="margin:0 auto 36px;"></div>
+      <p style="font-size:18px;font-style:italic;color:rgba(248,244,232,.75);margin-bottom:40px;">Сказки Пушкина в исполнении мастеров слова</p>
+      <a href="skazki.html" class="cta">Перейти в аудиотеку</a>
+    </div>
+  </div>
+</section>
+
+<section id="qrf">
+  <div class="si">
+    <div class="reveal" style="text-align:center;">
+      <span class="slabel" style="display:block;text-align:center;">На упаковке</span>
+      <h2 class="stitle">Найди нас на полке</h2>
+      <div class="div" style="margin:0 auto 18px;"></div>
+      <p style="font-size:16px;font-style:italic;color:rgba(248,244,232,.72);max-width:380px;margin:0 auto;">Этот QR-код напечатан на упаковке продукции «Залесский Фермер»</p>
+      <div class="qrf-frame reveal rd1">
+        <img src="4.png" alt="QR" onerror="this.style.background='rgba(230,190,50,.08)';this.style.padding='30px';">
+      </div>
+      <p class="qrf-cap">Сканируй — попадёшь в сказку</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <img src="1.png" alt="ТЦ" style="height:44px;opacity:.55;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto;" onerror="this.style.display='none'">
+  <p>© 2026 Тридевятое Царство &times; Залесский Фермер &nbsp;·&nbsp; Вкус живого слова</p>
+</footer>
+
+<div class="cookie" id="cookie">
+  <p class="cookie-txt">Мы используем файлы <strong>cookie</strong>, чтобы улучшить ваш опыт. Продолжая использование, вы соглашаетесь с нашей <a href="#">политикой конфиденциальности</a>.</p>
+  <div class="cookie-btns">
+    <button class="cbtn ok" id="cok">Принять</button>
+    <button class="cbtn no" id="cno">Отклонить</button>
   </div>
 </div>
 
-<audio id="audio" src="39k.m4a"></audio>
+<audio id="maudio" src="39k.m4a"></audio>
 
 <script>
-// --- ЛОГИКА МЕНЮ ---
-const burger = document.getElementById('burger');
-const menu = document.getElementById('menu');
-
-burger.addEventListener('click', () => {
-  burger.classList.toggle('active');
-  menu.classList.toggle('active');
-});
-
-// Закрытие меню при клике на любую из заглушек
-document.querySelectorAll('.menu a').forEach(link => {
-  link.addEventListener('click', (e) => {
-    e.preventDefault(); // Предотвращаем прыжок страницы наверх из-за "#"
-    burger.classList.remove('active');
-    menu.classList.remove('active');
-  });
-});
-
-// --- ЛОГИКА ПЛЕЕРА ---
-const audio = document.getElementById('audio');
-const playBtn = document.getElementById('play');
-const icon = document.getElementById('icon');
-const bar = document.getElementById('bar');
-const progress = document.getElementById('progress');
-const current = document.getElementById('current');
-const duration = document.getElementById('duration');
-
-playBtn.onclick = () => {
-  if (audio.paused) {
-    audio.play().catch(() => {});
-    icon.innerHTML = '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>'; // pause
-  } else {
-    audio.pause();
-    icon.innerHTML = '<path d="M8 5v14l11-7z"/>'; // play
+// PARTICLES
+(function(){
+  const cv=document.getElementById('pcanvas'),ctx=cv.getContext('2d');
+  let W,H,pts=[];
+  function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight}
+  function mk(){return{x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+.4,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25-.08,a:Math.random()*.8+.2,c:Math.random()>.3?'#e6be32':'#ffffff',p:Math.random()*Math.PI*2}}
+  resize();
+  pts=Array.from({length:130},mk);
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      p.p+=.018;p.x+=p.vx;p.y+=p.vy;
+      if(p.y<-4)p.y=H+4;if(p.x<-4)p.x=W+4;if(p.x>W+4)p.x=-4;
+      const a=p.a*(0.65+0.35*Math.sin(p.p));
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.c+(Math.round(a*255).toString(16).padStart(2,'0'));
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
   }
-};
+  window.addEventListener('resize',resize);
+  draw();
+})();
 
-audio.addEventListener('timeupdate', () => {
-  if (!audio.duration) return;
-  const percent = (audio.currentTime / audio.duration) * 100;
-  bar.style.width = percent + "%";
-  current.textContent = formatTime(audio.currentTime);
-});
+// BURGER
+const burger=document.getElementById('burger'),nav=document.getElementById('nav');
+burger.onclick=()=>{burger.classList.toggle('active');nav.classList.toggle('active');document.body.style.overflow=nav.classList.contains('active')?'hidden':''};
+document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',()=>{burger.classList.remove('active');nav.classList.remove('active');document.body.style.overflow=''}));
 
-audio.addEventListener('loadedmetadata', () => {
-  duration.textContent = formatTime(audio.duration);
-});
+// HEADER SCROLL
+const hdr=document.getElementById('hdr');
+window.addEventListener('scroll',()=>hdr.classList.toggle('scrolled',scrollY>50));
 
-progress.onclick = (e) => {
-  const width = progress.clientWidth;
-  const clickX = e.offsetX;
-  audio.currentTime = (clickX / width) * audio.duration;
-};
+// REVEAL
+const ro=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('visible')),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
 
-function formatTime(sec) {
-  if (isNaN(sec)) return "0:00";
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60).toString().padStart(2, '0');
-  return m + ":" + s;
-}
+// MINI PLAYER
+const au=document.getElementById('maudio'),mb=document.getElementById('mplay'),mi=document.getElementById('micon'),bar=document.getElementById('mbar'),prog=document.getElementById('mprog'),cur=document.getElementById('mcur'),dur=document.getElementById('mdur');
+mb.onclick=()=>{if(au.paused){au.play().catch(()=>{});mi.innerHTML='<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';}else{au.pause();mi.innerHTML='<path d="M8 5v14l11-7z"/>';}};
+au.addEventListener('timeupdate',()=>{if(!au.duration)return;bar.style.width=(au.currentTime/au.duration*100)+'%';cur.textContent=ft(au.currentTime);});
+au.addEventListener('loadedmetadata',()=>dur.textContent=ft(au.duration));
+prog.addEventListener('click',e=>au.currentTime=(e.offsetX/prog.clientWidth)*au.duration);
+function ft(s){if(isNaN(s))return'0:00';return Math.floor(s/60)+':'+Math.floor(s%60).toString().padStart(2,'0');}
+
+// COOKIE
+const cb=document.getElementById('cookie');
+if(!localStorage.getItem('ck-consent'))setTimeout(()=>cb.classList.add('show'),600);
+document.getElementById('cok').onclick=()=>{localStorage.setItem('ck-consent','y');cb.style.transform='translateY(100%)'};
+document.getElementById('cno').onclick=()=>{localStorage.setItem('ck-consent','n');cb.style.transform='translateY(100%)'};
 </script>
-
 </body>
 </html>
