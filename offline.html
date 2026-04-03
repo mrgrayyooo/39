@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Нет сети — Тридевятое Царство</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#00281e;--bg2:#001510;--gold:#e6be32;--white:#f8f4e8;--glass:rgba(0,40,30,.65);--gb:rgba(230,190,50,.3);}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--white);font-family:'Cormorant Garamond',serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;text-align:center;}
+
+.hero-h1{font-family:'Cinzel Decorative',serif;font-size:clamp(28px,5vw,56px);font-weight:700;margin-bottom:10px;text-shadow:0 0 40px rgba(230,190,50,.2);}
+.hero-h1 span{color:var(--gold);}
+.hero-sub{font-size:clamp(16px,2vw,22px);font-weight:300;font-style:italic;color:rgba(248,244,232,.8);max-width:600px;margin:0 auto 30px;line-height:1.5;}
+
+/* Контейнер игры */
+.game-wrap{position:relative;width:100%;max-width:800px;padding:0 20px;}
+canvas{width:100%;height:auto;background:linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);border:1px solid var(--gb);border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5);display:block;cursor:pointer;}
+.hint{font-family:'Cinzel',serif;font-size:11px;letter-spacing:3px;color:rgba(230,190,50,.7);text-transform:uppercase;margin-top:16px;}
+
+#restart-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--gold);color:var(--bg2);border:none;font-family:'Cinzel',serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:12px 28px;border-radius:3px;cursor:pointer;display:none;box-shadow:0 0 30px rgba(230,190,50,.5);}
+</style>
+</head>
+<body>
+
+<div class="game-wrap">
+  <h1 class="hero-h1">Связь <span>Оборвалась</span></h1>
+  <p class="hero-sub">Но ветер по морю гуляет и кораблик подгоняет.<br>Перепрыгивай рифы, пока сеть не вернётся.</p>
+  
+  <div style="position:relative;">
+    <canvas id="gameCanvas" width="800" height="250"></canvas>
+    <button id="restart-btn">Играть снова</button>
+  </div>
+  
+  <p class="hint">Нажми Пробел или коснись экрана</p>
+</div>
+
+<script>
+const cvs = document.getElementById('gameCanvas');
+const ctx = cvs.getContext('2d');
+const btn = document.getElementById('restart-btn');
+
+// Настройки игры
+let frames = 0;
+let score = 0;
+let gameSpeed = 5;
+let isGameOver = false;
+let waveOffset = 0;
+
+// Кораблик (Флот)
+const ship = {
+  x: 100,
+  y: 180,
+  w: 40,
+  h: 40,
+  vy: 0,
+  gravity: 0.6,
+  jumpPower: -10,
+  grounded: true,
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    // Наклон корабля при прыжке/падении
+    if(!this.grounded) ctx.rotate(this.vy * 0.03); 
+    
+    // Парус
+    ctx.fillStyle = '#f8f4e8';
+    ctx.beginPath();
+    ctx.moveTo(20, -this.h);
+    ctx.lineTo(20, 0);
+    ctx.lineTo(45, -10);
+    ctx.fill();
+    // Мачта
+    ctx.fillStyle = '#b8961a';
+    ctx.fillRect(18, -this.h, 3, this.h);
+    // Корпус
+    ctx.fillStyle = '#e6be32';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(40, 0);
+    ctx.lineTo(50, 15);
+    ctx.lineTo(5, 15);
+    ctx.fill();
+    
+    ctx.restore();
+  },
+  update() {
+    this.vy += this.gravity;
+    this.y += this.vy;
+    
+    // Уровень "земли" (моря)
+    if (this.y + 15 >= 200) { 
+      this.y = 185;
+      this.vy = 0;
+      this.grounded = true;
+    } else {
+      this.grounded = false;
+    }
+  },
+  jump() {
+    if (this.grounded) {
+      this.vy = this.jumpPower;
+      this.grounded = false;
+    }
+  }
+};
+
+// Препятствия (Рифы)
+const obstacles = [];
+class Obstacle {
+  constructor() {
+    this.w = 20 + Math.random() * 20;
+    this.h = 20 + Math.random() * 30;
+    this.x = cvs.width;
+    this.y = 200 - this.h;
+  }
+  draw() {
+    ctx.fillStyle = '#001510';
+    ctx.strokeStyle = '#b8961a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y + this.h);
+    ctx.lineTo(this.x + this.w / 2, this.y);
+    ctx.lineTo(this.x + this.w, this.y + this.h);
+    ctx.fill();
+    ctx.stroke();
+  }
+  update() {
+    this.x -= gameSpeed;
+  }
+}
+
+function handleObstacles() {
+  if (frames % (Math.floor(Math.random() * 60) + 70) === 0) {
+    obstacles.push(new Obstacle());
+  }
+  for (let i = 0; i < obstacles.length; i++) {
+    let obs = obstacles[i];
+    obs.update();
+    obs.draw();
+    
+    // Упрощенная коллизия (AABB)
+    if (ship.x < obs.x + obs.w &&
+        ship.x + ship.w - 10 > obs.x &&
+        ship.y + 15 > obs.y) {
+      isGameOver = true;
+    }
+    
+    // Удаление ушедших за экран и начисление очков
+    if (obs.x + obs.w < 0) {
+      obstacles.shift();
+      score += 10;
+      i--;
+      if (score % 100 === 0) gameSpeed += 0.5; // Ускорение игры
+    }
+  }
+}
+
+// Отрисовка динамичных волн
+function drawWaves() {
+  ctx.fillStyle = 'rgba(0, 40, 30, 0.9)';
+  ctx.beginPath();
+  ctx.moveTo(0, 200);
+  for (let i = 0; i <= cvs.width; i += 20) {
+    ctx.lineTo(i, 200 + Math.sin(waveOffset + i * 0.02) * 8);
+  }
+  ctx.lineTo(cvs.width, cvs.height);
+  ctx.lineTo(0, cvs.height);
+  ctx.fill();
+  
+  // Линия прибоя золотая
+  ctx.strokeStyle = 'rgba(230, 190, 50, 0.3)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  waveOffset += 0.05;
+}
+
+// Рисуем счет
+function drawScore() {
+  ctx.fillStyle = '#e6be32';
+  ctx.font = '20px Cinzel';
+  ctx.fillText('Счет: ' + score, 20, 30);
+}
+
+// Главный цикл
+function loop() {
+  if (isGameOver) {
+    btn.style.display = 'block';
+    return;
+  }
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  
+  ship.update();
+  ship.draw();
+  handleObstacles();
+  drawWaves();
+  drawScore();
+  
+  frames++;
+  requestAnimationFrame(loop);
+}
+
+// Управление
+function jumpAction() {
+  if (isGameOver) return;
+  ship.jump();
+}
+
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') jumpAction();
+});
+cvs.addEventListener('touchstart', jumpAction, {passive: true});
+cvs.addEventListener('mousedown', jumpAction);
+
+// Перезапуск
+btn.addEventListener('click', () => {
+  obstacles.length = 0;
+  score = 0;
+  frames = 0;
+  gameSpeed = 5;
+  isGameOver = false;
+  btn.style.display = 'none';
+  loop();
+});
+
+// Старт
+loop();
+</script>
+</body>
+</html>
