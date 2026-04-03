@@ -454,5 +454,12 @@ if(!localStorage.getItem('ck-consent'))setTimeout(()=>cb.classList.add('show'),6
 document.getElementById('cok').onclick=()=>{localStorage.setItem('ck-consent','y');cb.style.transform='translateY(100%)'};
 document.getElementById('cno').onclick=()=>{localStorage.setItem('ck-consent','n');cb.style.transform='translateY(100%)'};
 </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js');
+    });
+  }
+</script>
 </body>
 </html>
