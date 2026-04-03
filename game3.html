@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Лингвистический Сыщик — Тридевятое Царство</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#050a12}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;position:absolute;top:0;left:0;width:100%;height:100%}
+/* HUD */
+#hud{position:absolute;top:0;left:0;right:0;padding:10px 14px;z-index:20;pointer-events:none;display:flex;gap:10px;align-items:flex-start}
+.hp{background:rgba(5,10,20,.92);border:1px solid rgba(230,190,50,.32);border-radius:10px;padding:8px 14px;backdrop-filter:blur(10px)}
+.hp-lbl{font-family:'Cinzel',serif;font-size:9px;letter-spacing:3px;color:rgba(230,190,50,.55);text-transform:uppercase;margin-bottom:3px}
+.hp-val{font-family:'Cinzel',serif;font-size:17px;color:#e6be32;font-weight:700}
+.hp-val.danger{color:#ff5050;animation:blink .4s step-end infinite}
+#timer-wrap{position:relative;width:64px;height:64px;flex-shrink:0}
+#timer-svg{width:64px;height:64px;transform:rotate(-90deg)}
+#timer-arc{stroke-dasharray:175;stroke-dashoffset:0;stroke:#e6be32;stroke-width:4;fill:none;stroke-linecap:round;transition:stroke-dashoffset .28s linear}
+#timer-arc.danger{stroke:#ff5050}
+#timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:17px;color:#e6be32;font-weight:700}
+#timer-num.danger{color:#ff5050}
+/* TASK */
+#task{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:20;pointer-events:none;text-align:center;white-space:nowrap}
+.task-inner{background:rgba(5,10,20,.92);border:1px solid rgba(230,190,50,.28);border-radius:10px;padding:8px 20px;backdrop-filter:blur(10px)}
+.task-main{font-family:'Cinzel',serif;font-size:clamp(10px,1.8vw,13px);color:#e6be32;letter-spacing:2px;text-transform:uppercase}
+.task-sub{font-family:'Cinzel',serif;font-size:clamp(8px,1.3vw,11px);color:rgba(248,244,232,.5);margin-top:3px;letter-spacing:1px}
+/* FOUND SLOTS */
+#found{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);z-index:20;pointer-events:none;display:flex;gap:10px}
+.fw{min-width:80px;height:34px;background:rgba(5,10,20,.88);border:1px dashed rgba(230,190,50,.3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:10px;color:rgba(230,190,50,.4);letter-spacing:1px;padding:0 8px;transition:all .4s}
+.fw.filled{background:rgba(10,50,15,.9);border:1px solid rgba(80,200,80,.5);color:#80ff80;animation:popIn .35s cubic-bezier(.2,1.5,.5,1)}
+/* HINT */
+#hint{position:absolute;bottom:10px;left:0;right:0;text-align:center;z-index:20;pointer-events:none}
+.hint-inner{display:inline-block;background:rgba(5,10,20,.88);border-top:1px solid rgba(230,190,50,.18);padding:8px 22px}
+.hint-txt{font-family:'Cinzel',serif;font-size:10px;color:rgba(248,244,232,.38);letter-spacing:2px}
+.hint-txt span{color:rgba(230,190,50,.65)}
+/* DPAD */
+#dpad{position:absolute;bottom:20px;left:18px;width:126px;height:126px;pointer-events:auto;z-index:25;user-select:none}
+.dp-btn{position:absolute;width:40px;height:40px;background:rgba(5,10,20,.8);border:1px solid rgba(230,190,50,.32);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:none;font-size:15px;transition:background .1s;backdrop-filter:blur(4px);color:rgba(230,190,50,.7)}
+.dp-btn:active,.dp-btn.pressed{background:rgba(230,190,50,.3);border-color:rgba(230,190,50,.8);color:#e6be32}
+#dp-up{top:0;left:43px}#dp-down{bottom:0;left:43px}#dp-left{left:0;top:43px}#dp-right{right:0;top:43px}
+#dp-center{left:43px;top:43px;background:rgba(230,190,50,.07);border-radius:50%;pointer-events:none;font-size:16px;color:rgba(230,190,50,.3)}
+/* FEEDBACK */
+#feedback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:60;text-align:center;pointer-events:none;transition:transform .22s cubic-bezier(.2,1.5,.4,1),opacity .22s}
+#feedback.show{transform:translate(-50%,-50%) scale(1);opacity:1}
+#feedback.hide{transform:translate(-50%,-50%) scale(.5);opacity:0}
+.fb-inner{background:rgba(5,10,20,.96);border:2px solid var(--fc,#e6be32);border-radius:16px;padding:16px 30px;backdrop-filter:blur(16px)}
+.fb-icon{font-size:44px;display:block;margin-bottom:6px}
+.fb-title{font-family:'Cinzel Decorative',serif;font-size:clamp(15px,2.5vw,26px);color:var(--fc,#e6be32);margin-bottom:4px}
+.fb-word{font-family:'Cinzel',serif;font-size:12px;color:rgba(248,244,232,.65);letter-spacing:2px;max-width:260px;line-height:1.5}
+/* OVERLAYS */
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50;background:rgba(5,10,20,.93);backdrop-filter:blur(18px);transition:opacity .4s;padding:24px;text-align:center}
+.overlay.hidden{opacity:0;pointer-events:none}
+.ov-icon{font-size:64px;margin-bottom:14px;animation:float 2.2s ease infinite}
+.ov-title{font-family:'Cinzel Decorative',serif;font-size:clamp(22px,4vw,42px);color:#e6be32;margin-bottom:10px;text-shadow:0 0 40px rgba(230,190,50,.3)}
+.ov-sub{font-family:'Cinzel',serif;font-size:clamp(11px,1.8vw,16px);color:rgba(248,244,232,.75);margin-bottom:16px;max-width:520px;line-height:1.7}
+.ov-rule{font-family:'Cinzel',serif;font-size:13px;color:rgba(230,190,50,.75);margin-bottom:6px;line-height:1.6}
+.btn{display:inline-flex;align-items:center;gap:8px;background:#e6be32;color:#050a12;font-family:'Cinzel',serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:14px 34px;border-radius:3px;border:none;cursor:pointer;transition:all .3s;text-decoration:none;margin:6px}
+.btn:hover{box-shadow:0 0 30px rgba(230,190,50,.55);transform:translateY(-2px)}
+.btn.outline{background:transparent;color:#e6be32;border:1px solid #e6be32}
+.btn.outline:hover{background:rgba(230,190,50,.1)}
+@keyframes popIn{0%{transform:scale(1.7)}100%{transform:scale(1)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes sparkleUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-50px) scale(1.4)}}
+@media(min-width:769px){#dpad{display:none}}
+</style>
+</head>
+<body>
+<canvas id="gc"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="timer-wrap">
+    <svg id="timer-svg" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="28" fill="rgba(5,10,20,.88)" stroke="rgba(230,190,50,.15)" stroke-width="2"/>
+      <circle id="timer-arc" cx="32" cy="32" r="28"/>
+    </svg>
+    <div id="timer-num">30</div>
+  </div>
+  <div class="hp"><div class="hp-lbl">Найдено</div><div class="hp-val" id="found-count">0 / 3</div></div>
+  <div class="hp"><div class="hp-lbl">Очки</div><div class="hp-val" id="score-disp">0</div></div>
+</div>
+<div id="task">
+  <div class="task-inner">
+    <div class="task-main">🔍 Найди 3 существительных</div>
+    <div class="task-sub">Наступи на слово · КТО? ЧТО? = ✓ · Другое = −4 сек</div>
+  </div>
+</div>
+<div id="found">
+  <div class="fw" id="slot0">—</div>
+  <div class="fw" id="slot1">—</div>
+  <div class="fw" id="slot2">—</div>
+</div>
+<div id="hint"><div class="hint-inner"><div class="hint-txt">Существительное отвечает на вопросы <span>КТО? ЧТО?</span></div></div></div>
+<div id="dpad">
+  <div class="dp-btn" id="dp-up">▲</div>
+  <div class="dp-btn" id="dp-down">▼</div>
+  <div class="dp-btn" id="dp-left">◀</div>
+  <div class="dp-btn" id="dp-right">▶</div>
+  <div class="dp-btn" id="dp-center">🔍</div>
+</div>
+<div id="feedback">
+  <div class="fb-inner">
+    <span class="fb-icon" id="fb-icon">✅</span>
+    <div class="fb-title" id="fb-title">Существительное!</div>
+    <div class="fb-word" id="fb-word"></div>
+  </div>
+</div>
+
+<!-- OVERLAYS -->
+<div class="overlay" id="ov-start">
+  <div class="ov-icon">🔍</div>
+  <div class="ov-title">Лингвистический Сыщик</div>
+  <div class="ov-sub">Исследуй остров Канта в Калининграде. По острову разбросаны слова — найди <strong style="color:#e6be32">3 существительных</strong> за 30 секунд!</div>
+  <div class="ov-rule">✓ Существительное: <em style="color:#80ff80">КТО? ЧТО?</em></div>
+  <div class="ov-rule">✗ Глагол / прилагательное / наречие — штраф −4 сек</div>
+  <div class="ov-rule" style="color:rgba(248,244,232,.5);font-size:11px;margin-top:6px;">💡 Здания непроходимы · за ними детектив виден сквозь стены</div>
+  <button class="btn" id="btn-start">Начать расследование</button>
+  <a href="index.html" class="btn outline">← Главная</a>
+</div>
+<div class="overlay hidden" id="ov-win">
+  <div class="ov-icon">🏆</div>
+  <div class="ov-title">Дело раскрыто!</div>
+  <div class="ov-sub" id="win-sub">Ты нашёл все существительные!</div>
+  <div id="win-words" style="display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap;justify-content:center;"></div>
+  <button class="btn" id="btn-again">Новое дело</button>
+  <a href="index.html" class="btn outline">← Главная</a>
+</div>
+<div class="overlay hidden" id="ov-lose">
+  <div class="ov-icon">⏰</div>
+  <div class="ov-title">Время вышло!</div>
+  <div class="ov-sub" id="lose-sub">Не успел найти всех существительных...</div>
+  <button class="btn" id="btn-retry">Попробовать снова</button>
+  <a href="index.html" class="btn outline">← Главная</a>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+//  CANVAS & CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const canvas = document.getElementById('gc');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const TS = 24; // tile size in pixels
+const MW = 58, MH = 68; // map size in tiles
+
+// ═══════════════════════════════════════════════════════════════
+//  TILE IDs
+// ═══════════════════════════════════════════════════════════════
+const T_WATER=0, T_SHALLOW=1, T_SHORE=2, T_GRASS=3, T_COBBLE=4,
+      T_PATH=5, T_REED=6, T_FLOWER=7, T_BUSH=8, T_BENCH=9, T_LAMP=10,
+      T_BRIDGE=11, T_SAND=12, T_GRAVEL=13;
+
+// ═══════════════════════════════════════════════════════════════
+//  BUILDING DEFINITIONS  (real Kneiphof layout)
+// Each building: {tx, ty, tw, th, type, label}
+// tx,ty = top-left tile, tw,th = size in tiles
+// ═══════════════════════════════════════════════════════════════
+const BUILDINGS = [
+  // MAIN CATHEDRAL (Dom) — large, south-center
+  { tx:22, ty:40, tw:14, th:18, type:'cathedral', label:'Кафедральный собор', z:1 },
+  // Kant's TOMB portico — small, north of cathedral entrance
+  { tx:25, ty:38, tw:8,  th:4,  type:'tomb',      label:'Могила Канта',       z:0 },
+  // North pavilion
+  { tx:10, ty:14, tw:6,  th:5,  type:'pavilion',  label:'Павильон',           z:0 },
+  { tx:42, ty:14, tw:6,  th:5,  type:'pavilion',  label:'Павильон',           z:0 },
+  // Garden walls / pergola east
+  { tx:44, ty:30, tw:4,  th:8,  type:'wall',      label:'',                   z:0 },
+  { tx:10, ty:30, tw:4,  th:8,  type:'wall',      label:'',                   z:0 },
+  // Monument to Kant — small stone pedestal
+  { tx:26, ty:22, tw:6,  th:6,  type:'monument',  label:'Памятник Канту',     z:0 },
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  BASE MAP  (will be built procedurally)
+// ═══════════════════════════════════════════════════════════════
+let map = [];
+
+function buildMap() {
+  // Initialise with water
+  for (let y = 0; y < MH; y++) { map[y] = []; for (let x = 0; x < MW; x++) map[y][x] = T_WATER; }
+
+  // ── ISLAND SHAPE (oval, matching Kneiphof) ──
+  const cx = MW / 2, cy = MH / 2;
+  const rx = MW / 2 - 4, ry = MH / 2 - 5;
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+    // Slightly stretched east-west oval
+    const dx = (x - cx) / rx, dy = (y - cy) / (ry * 1.1);
+    if (dx * dx + dy * dy < 0.88) map[y][x] = T_GRASS;
+  }
+
+  // ── SHALLOW WATER RING ──
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+    if (map[y][x] !== T_WATER) continue;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const ny = y + dy, nx = x + dx;
+      if (ny >= 0 && ny < MH && nx >= 0 && nx < MW && map[ny][nx] === T_GRASS) { map[y][x] = T_SHALLOW; break; }
+    }
+  }
+
+  // ── SHORE RING ──
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+    if (map[y][x] !== T_GRASS) continue;
+    let isEdge = false;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const ny = y + dy, nx = x + dx;
+      if (ny >= 0 && ny < MH && nx >= 0 && nx < MW && map[ny][nx] === T_WATER) isEdge = true;
+    }
+    if (isEdge) map[y][x] = T_SHORE;
+  }
+
+  // ── COBBLE PATHS (main cross + ring) ──
+  const half = Math.floor(MH / 2);
+  // North-South spine
+  for (let y = 6; y < MH - 6; y++) { map[y][cx - 1] = T_COBBLE; map[y][cx] = T_COBBLE; map[y][cx + 1] = T_COBBLE; }
+  // East-West spine
+  for (let x = 6; x < MW - 6; x++) { map[half - 1][x] = T_COBBLE; map[half][x] = T_COBBLE; map[half + 1][x] = T_COBBLE; }
+  // Ring path around cathedral
+  for (let y = 36; y <= 62; y++) for (let x = 18; x <= 40; x++) {
+    if ((y === 36 || y === 62 || x === 18 || x === 40) && map[y][x] === T_GRASS) map[y][x] = T_COBBLE;
+  }
+  // Secondary paths
+  for (let y = 12; y < 36; y++) { map[y][12] = T_PATH; map[y][MW - 13] = T_PATH; }
+  for (let x = 12; x < MW - 12; x++) { map[12][x] = T_PATH; map[MH - 13][x] = T_PATH; }
+  for (let x = 12; x < MW - 12; x++) { map[20][x] = T_PATH; map[MH - 21][x] = T_PATH; }
+
+  // ── GRAVEL AREAS (around cathedral) ──
+  for (let y = 37; y <= 61; y++) for (let x = 19; x <= 39; x++) {
+    if (map[y][x] === T_GRASS) map[y][x] = T_GRAVEL;
+  }
+
+  // ── BRIDGES (north + south + east) ──
+  // North bridge
+  for (let y = 0; y < 7; y++) { map[y][cx - 1] = T_BRIDGE; map[y][cx] = T_BRIDGE; map[y][cx + 1] = T_BRIDGE; }
+  // South bridge
+  for (let y = MH - 7; y < MH; y++) { map[y][cx - 1] = T_BRIDGE; map[y][cx] = T_BRIDGE; map[y][cx + 1] = T_BRIDGE; }
+  // East bridge (Медовый мост area)
+  for (let x = MW - 7; x < MW; x++) { map[half - 1][x] = T_BRIDGE; map[half][x] = T_BRIDGE; }
+
+  // ── REEDS (water edge) ──
+  for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
+    if (map[y][x] === T_SHALLOW && (x + y) % 6 === 0) map[y][x] = T_REED;
+  }
+
+  // ── BUSHES ──
+  const bushSpots = [
+    [8,16],[8,22],[8,28],[MW-10,16],[MW-10,22],[MW-10,28],
+    [15,38],[15,44],[MW-16,38],[MW-16,44],
+    [20,26],[MW-21,26],[20,MH-27],[MW-21,MH-27],
+  ];
+  bushSpots.forEach(([x,y]) => { if (map[y] && map[y][x] === T_GRASS) map[y][x] = T_BUSH; });
+
+  // ── FLOWERS ──
+  const flowerSpots = [
+    [14,16],[15,18],[MW-15,16],[MW-15,18],
+    [cx-4,10],[cx+4,10],[cx-4,MH-11],[cx+4,MH-11],
+    [14,MH-27],[15,MH-25],[MW-15,MH-27],[MW-15,MH-25],
+  ];
+  flowerSpots.forEach(([x,y]) => { if (map[y] && map[y][x] === T_GRASS) map[y][x] = T_FLOWER; });
+
+  // ── BENCHES ──
+  const benchSpots = [
+    [cx-6,half-2],[cx+6,half-2],[cx-6,half+2],[cx+6,half+2],
+    [14,half-1],[MW-15,half-1],[cx-1,14],[cx-1,MH-15],
+    [20,32],[MW-21,32],[20,MH-33],[MW-21,MH-33],
+  ];
+  benchSpots.forEach(([x,y]) => { if (map[y] && (map[y][x] === T_GRASS||map[y][x]===T_GRAVEL)) map[y][x] = T_BENCH; });
+
+  // ── LAMP POSTS ──
+  const lampSpots = [
+    [cx-3,8],[cx+3,8],[cx-3,MH-9],[cx+3,MH-9],
+    [9,half-3],[9,half+3],[MW-10,half-3],[MW-10,half+3],
+    [cx-5,half-4],[cx+5,half-4],[cx-5,half+4],[cx+5,half+4],
+    [19,37],[39,37],[19,62],[39,62],
+    [15,22],[MW-16,22],[15,MH-23],[MW-16,MH-23],
+  ];
+  lampSpots.forEach(([x,y]) => { if (map[y] && map[y][x] !== T_WATER) map[y][x] = T_LAMP; });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PASSABILITY
+// ═══════════════════════════════════════════════════════════════
+const IMPASSABLE_TILES = new Set([T_WATER, T_SHALLOW, T_REED]);
+
+function isTilePassable(tx, ty) {
+  if (tx < 0 || ty < 0 || tx >= MW || ty >= MH) return false;
+  if (IMPASSABLE_TILES.has(map[ty][tx])) return false;
+  return true;
+}
+
+function isBuildingAt(px, py) {
+  // Returns building index if player world pos is inside a building, else -1
+  for (let i = 0; i < BUILDINGS.length; i++) {
+    const b = BUILDINGS[i];
+    if (px >= b.tx * TS && px <= (b.tx + b.tw) * TS &&
+        py >= b.ty * TS && py <= (b.ty + b.th) * TS) return i;
+  }
+  return -1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TILE DRAWING
+// ═══════════════════════════════════════════════════════════════
+let _t = 0;
+
+function drawTile(tx, ty, type, wx, wy) {
+  const v = (tx * 7 + ty * 13) % 4;
+  const v2 = (tx * 11 + ty * 5) % 8;
+
+  switch (type) {
+    case T_WATER: {
+      ctx.fillStyle = v < 2 ? '#0a1e40' : '#0c2248';
+      ctx.fillRect(wx, wy, TS, TS);
+      const wy2 = ((Math.sin(_t * .7 + tx * .4 + ty * .3) * .5 + .5) * TS) | 0;
+      ctx.fillStyle = 'rgba(50,120,200,.22)'; ctx.fillRect(wx + 2, wy + wy2, TS - 4, 2);
+      const wy3 = ((Math.cos(_t * .55 + tx * .3 + ty * .45) * .5 + .5) * TS) | 0;
+      ctx.fillStyle = 'rgba(100,160,240,.14)'; ctx.fillRect(wx + 1, wy + wy3, TS - 2, 1);
+      break;
+    }
+    case T_SHALLOW: {
+      ctx.fillStyle = v < 2 ? '#102a5a' : '#0e2650';
+      ctx.fillRect(wx, wy, TS, TS);
+      const sw = ((Math.sin(_t * .6 + tx * .5 + ty * .3) * .5 + .5) * TS) | 0;
+      ctx.fillStyle = 'rgba(80,140,220,.2)'; ctx.fillRect(wx + 2, wy + sw, TS - 4, 1);
+      break;
+    }
+    case T_SHORE: {
+      ctx.fillStyle = ['#8a7044', '#9a8050', '#7a6234', '#8a7242'][v];
+      ctx.fillRect(wx, wy, TS, TS);
+      if (v2 < 3) { ctx.fillStyle = 'rgba(160,140,80,.3)'; ctx.fillRect(wx + v2, wy + v2 % TS, 2, 1); }
+      break;
+    }
+    case T_SAND: {
+      ctx.fillStyle = v < 2 ? '#9a8450' : '#8a7440';
+      ctx.fillRect(wx, wy, TS, TS);
+      break;
+    }
+    case T_GRASS: {
+      const gc = ['#2c5a1e', '#345c1e', '#284e1a', '#306018'][v];
+      ctx.fillStyle = gc; ctx.fillRect(wx, wy, TS, TS);
+      if (v2 === 0) {
+        ctx.strokeStyle = '#3a6a22'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(wx+3, wy+TS); ctx.lineTo(wx+2, wy+TS-5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(wx+8, wy+TS); ctx.lineTo(wx+7, wy+TS-7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(wx+14, wy+TS); ctx.lineTo(wx+14, wy+TS-4); ctx.stroke();
+      }
+      break;
+    }
+    case T_COBBLE: {
+      // Брусчатка — detailed Kaliningrad cobblestone
+      ctx.fillStyle = v < 2 ? '#6a6862' : '#5e5c58';
+      ctx.fillRect(wx, wy, TS, TS);
+      const offset = (ty % 2) * (TS / 2);
+      // Stone blocks
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.fillRect(wx, wy + TS / 2 - 1, TS, 1);
+      ctx.fillRect(wx + ((offset + TS / 2) % TS), wy, 1, TS / 2);
+      ctx.fillRect(wx + ((offset) % TS), wy + TS / 2, 1, TS / 2);
+      // Highlight
+      ctx.fillStyle = 'rgba(255,255,255,.07)';
+      ctx.fillRect(wx + 1, wy + 1, TS / 2 - 2, 1);
+      // Moss in cracks
+      if (v2 === 0) { ctx.fillStyle = 'rgba(40,80,30,.4)'; ctx.fillRect(wx + 4, wy + TS / 2 - 1, 3, 1); }
+      break;
+    }
+    case T_PATH: {
+      ctx.fillStyle = v < 2 ? '#7a6a4a' : '#6e5e40';
+      ctx.fillRect(wx, wy, TS, TS);
+      if (v2 < 3) { ctx.fillStyle = 'rgba(80,60,30,.35)'; ctx.fillRect(wx + v2 * 4 + 1, wy + v2 % TS, 3, 2); }
+      ctx.fillStyle = 'rgba(0,0,0,.15)';
+      ctx.fillRect(wx, wy, 1, TS); ctx.fillRect(wx, wy, TS, 1);
+      break;
+    }
+    case T_GRAVEL: {
+      ctx.fillStyle = v < 2 ? '#7a7268' : '#706860';
+      ctx.fillRect(wx, wy, TS, TS);
+      // Gravel dots
+      ctx.fillStyle = 'rgba(0,0,0,.2)';
+      for (let g = 0; g < 5; g++) { const gx = (tx * 11 + ty * 7 + g * 3) % (TS - 4) + 2, gy = (tx * 5 + ty * 9 + g * 7) % (TS - 4) + 2; ctx.fillRect(wx + gx, wy + gy, 2, 1); }
+      ctx.fillStyle = 'rgba(255,255,255,.06)';
+      for (let g = 0; g < 3; g++) { const gx = (tx * 13 + ty * 3 + g * 5) % (TS - 4) + 2, gy = (tx * 7 + ty * 11 + g * 9) % (TS - 4) + 2; ctx.fillRect(wx + gx, wy + gy, 1, 1); }
+      break;
+    }
+    case T_REED: {
+      ctx.fillStyle = '#102a5a'; ctx.fillRect(wx, wy, TS, TS);
+      const rsway = Math.sin(_t * 1.1 + tx * .8) * 1.5;
+      ctx.strokeStyle = '#3a5028'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(wx + 5, wy + TS); ctx.lineTo(wx + 5 + rsway, wy + 3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(wx + 12, wy + TS); ctx.lineTo(wx + 12 - rsway, wy + 5); ctx.stroke();
+      ctx.fillStyle = '#4a5a30';
+      ctx.fillRect(wx + 3 + rsway | 0, wy + 2, 4, 3);
+      ctx.fillRect(wx + 10 - rsway | 0, wy + 4, 4, 3);
+      break;
+    }
+    case T_FLOWER: {
+      ctx.fillStyle = v < 2 ? '#2c5a1e' : '#305e20'; ctx.fillRect(wx, wy, TS, TS);
+      const fc = [['#e84060','#fff'],['#f0e020','#f0a020'],['#c060e0','#fff'],['#60a0f0','#fff']][v];
+      for (let f = 0; f < 3; f++) {
+        const fx = wx + 4 + f * 7, fy = wy + 5 + f % 2 * 3;
+        for (let p = 0; p < 5; p++) { const ang = p / 5 * Math.PI * 2; ctx.fillStyle = fc[0]; ctx.fillRect(fx + Math.cos(ang) * 3 - 1, fy + Math.sin(ang) * 3 - 1, 2, 2); }
+        ctx.fillStyle = fc[1]; ctx.fillRect(fx - 1, fy - 1, 2, 2);
+        ctx.strokeStyle = '#3a6a20'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(fx, fy + 2); ctx.lineTo(fx, wy + TS - 2); ctx.stroke();
+      }
+      break;
+    }
+    case T_BUSH: {
+      ctx.fillStyle = v < 2 ? '#2c5a1e' : '#285618'; ctx.fillRect(wx, wy, TS, TS);
+      const bsway = Math.sin(_t * .5 + tx * .3) * .8;
+      ctx.fillStyle = '#1e5016'; ctx.beginPath(); ctx.ellipse(wx + TS/2 + bsway, wy + TS * .65, TS/2-1, TS*.38, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#266018'; ctx.beginPath(); ctx.ellipse(wx + TS/2 - 2 + bsway, wy + TS * .5, TS/2-3, TS*.3, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#306820'; ctx.beginPath(); ctx.ellipse(wx + TS/2 - 2 + bsway, wy + TS * .36, TS/2-5, TS*.22, 0, 0, Math.PI*2); ctx.fill();
+      // Berries
+      if (v2 < 2) { ctx.fillStyle = '#c03028'; ctx.beginPath(); ctx.arc(wx + TS/2 + 3, wy + TS * .5, 2, 0, Math.PI*2); ctx.fill(); }
+      break;
+    }
+    case T_BENCH: {
+      ctx.fillStyle = v < 2 ? '#2c5a1e' : '#305e20'; ctx.fillRect(wx, wy, TS, TS);
+      // Legs
+      ctx.fillStyle = '#6a4a22';
+      ctx.fillRect(wx + 3, wy + TS/2 + 2, 3, 7);
+      ctx.fillRect(wx + TS - 6, wy + TS/2 + 2, 3, 7);
+      // Seat slats
+      ctx.fillStyle = '#8a6232';
+      ctx.fillRect(wx + 2, wy + TS/2 - 1, TS - 4, 3);
+      ctx.fillStyle = '#7a5628';
+      ctx.fillRect(wx + 2, wy + TS/2 + 2, TS - 4, 2);
+      // Back rest
+      ctx.fillStyle = '#8a6232';
+      ctx.fillRect(wx + 2, wy + TS/2 - 6, TS - 4, 2);
+      ctx.fillStyle = '#7a5628';
+      ctx.fillRect(wx + 2, wy + TS/2 - 9, TS - 4, 2);
+      // Back posts
+      ctx.fillStyle = '#6a4a22';
+      ctx.fillRect(wx + 3, wy + TS/2 - 9, 2, 10);
+      ctx.fillRect(wx + TS - 5, wy + TS/2 - 9, 2, 10);
+      break;
+    }
+    case T_LAMP: {
+      ctx.fillStyle = v < 2 ? '#2c5a1e' : '#305e20'; ctx.fillRect(wx, wy, TS, TS);
+      const flicker = 0.7 + 0.3 * Math.sin(_t * 4 + tx + ty);
+      // Glow halo
+      const lg = ctx.createRadialGradient(wx + TS/2, wy + 4, 2, wx + TS/2, wy + 4, 28 * flicker);
+      lg.addColorStop(0, `rgba(255,200,80,${.4 * flicker})`);
+      lg.addColorStop(.5, `rgba(255,160,40,${.12 * flicker})`);
+      lg.addColorStop(1, 'rgba(255,120,20,0)');
+      ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(wx + TS/2, wy + 4, 30, 0, Math.PI*2); ctx.fill();
+      // Pole (cast iron)
+      ctx.fillStyle = '#3a3228'; ctx.fillRect(wx + TS/2 - 1, wy + 6, 3, TS - 7);
+      // Base
+      ctx.fillStyle = '#4a4032'; ctx.fillRect(wx + TS/2 - 4, wy + TS - 5, 8, 5);
+      // Arm bracket
+      ctx.strokeStyle = '#4a4032'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(wx + TS/2 + 1, wy + 6); ctx.lineTo(wx + TS/2 + 7, wy + 1); ctx.stroke();
+      // Lamp head
+      ctx.fillStyle = '#4a4032'; ctx.fillRect(wx + TS/2 + 4, wy - 3, 8, 6);
+      ctx.fillStyle = `rgba(255,220,80,${flicker * .95})`;
+      ctx.fillRect(wx + TS/2 + 6, wy - 2, 4, 4);
+      // Decorative scroll
+      ctx.strokeStyle = 'rgba(80,70,50,.6)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(wx + TS/2 + 2, wy + 5, 3, 0, Math.PI); ctx.stroke();
+      break;
+    }
+    case T_BRIDGE: {
+      ctx.fillStyle = v < 2 ? '#5a5240' : '#4e4838';
+      ctx.fillRect(wx, wy, TS, TS);
+      const bdir = Math.abs(tx - MW/2) < 5 ? 'v' : 'h';
+      // Planks
+      ctx.fillStyle = v < 2 ? '#6a6248' : '#5e5640';
+      for (let p = 2; p < TS; p += 5) {
+        if (bdir === 'v') ctx.fillRect(wx, wy + p, TS, 3);
+        else ctx.fillRect(wx + p, wy, 3, TS);
+      }
+      // Stone border
+      ctx.strokeStyle = '#3a3828'; ctx.lineWidth = 2;
+      ctx.strokeRect(wx, wy, TS, TS);
+      // Metal railing hint
+      ctx.strokeStyle = 'rgba(100,96,80,.7)'; ctx.lineWidth = 1;
+      if (bdir === 'v') { ctx.beginPath(); ctx.moveTo(wx + 2, wy); ctx.lineTo(wx + 2, wy + TS); ctx.stroke(); ctx.beginPath(); ctx.moveTo(wx + TS - 3, wy); ctx.lineTo(wx + TS - 3, wy + TS); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.moveTo(wx, wy + 2); ctx.lineTo(wx + TS, wy + 2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(wx, wy + TS - 3); ctx.lineTo(wx + TS, wy + TS - 3); ctx.stroke(); }
+      break;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BUILDING DRAWING
+// ═══════════════════════════════════════════════════════════════
+function drawBuilding(b, alpha) {
+  const wx = b.tx * TS - cam.x;
+  const wy = b.ty * TS - cam.y;
+  const bw = b.tw * TS, bh = b.th * TS;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  switch (b.type) {
+
+    case 'cathedral': {
+      // ─ SHADOW ─
+      ctx.fillStyle = 'rgba(0,0,0,.3)';
+      ctx.beginPath(); ctx.ellipse(wx + bw/2 + 10, wy + bh + 8, bw/2, 12, 0, 0, Math.PI*2); ctx.fill();
+
+      // ─ FOUNDATION / STEPS ─
+      ctx.fillStyle = '#7a7060';
+      ctx.fillRect(wx - 4, wy + bh - 6, bw + 8, 10);
+      ctx.fillStyle = '#8a8070';
+      ctx.fillRect(wx - 2, wy + bh - 10, bw + 4, 6);
+      // Step lines
+      ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 1;
+      for (let s = 1; s <= 2; s++) ctx.strokeRect(wx - 2 - s, wy + bh - 10 + s * 2, bw + 4 + s*2, 4);
+
+      // ─ MAIN NAVE (body) ─
+      const nGrad = ctx.createLinearGradient(wx, wy, wx + bw, wy + bh);
+      nGrad.addColorStop(0, '#c8b898'); nGrad.addColorStop(.4, '#b8a888'); nGrad.addColorStop(1, '#9a8a70');
+      ctx.fillStyle = nGrad;
+      ctx.fillRect(wx + bw*.12, wy + bh*.1, bw*.76, bh*.88);
+
+      // ─ TRANSEPT (cross-arms) ─
+      const tGrad = ctx.createLinearGradient(wx, wy + bh*.3, wx, wy + bh*.7);
+      tGrad.addColorStop(0, '#c4b494'); tGrad.addColorStop(1, '#a09080');
+      ctx.fillStyle = tGrad;
+      ctx.fillRect(wx, wy + bh*.35, bw, bh*.3);
+
+      // ─ STONE COURSING on nave ─
+      ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 1;
+      for (let row = 0; row < 8; row++) {
+        const ry = wy + bh*.1 + row * (bh*.88/8);
+        ctx.beginPath(); ctx.moveTo(wx + bw*.12, ry); ctx.lineTo(wx + bw*.88, ry); ctx.stroke();
+        const off = row % 2 * (bw*.12);
+        ctx.beginPath(); ctx.moveTo(wx + bw*.24 + off, ry); ctx.lineTo(wx + bw*.24 + off, ry + bh*.88/8); ctx.stroke();
+      }
+
+      // ─ GOTHIC WINDOWS (lancet arches) ─
+      const winCols = [.20, .37, .53, .70, .84];
+      const winRows = [.15, .38, .60];
+      winCols.forEach(xf => winRows.forEach(yf => {
+        const ww = bw*.09, wh = bh*.15;
+        const wx2 = wx + bw*xf - ww/2, wy2 = wy + bh*yf;
+        ctx.fillStyle = 'rgba(0,0,0,.5)';
+        ctx.fillRect(wx2, wy2, ww, wh);
+        ctx.beginPath(); ctx.arc(wx2 + ww/2, wy2, ww/2, Math.PI, 0); ctx.fill();
+        // Stained glass
+        const lit = Math.sin(_t*.3 + xf*10 + yf*7) > -.3;
+        ctx.fillStyle = lit ? 'rgba(200,160,60,.3)' : 'rgba(80,100,180,.2)';
+        ctx.fillRect(wx2+1, wy2+1, ww-2, wh-2);
+        ctx.beginPath(); ctx.arc(wx2 + ww/2, wy2, ww/2-1, Math.PI, 0); ctx.fill();
+        // Tracery cross
+        ctx.strokeStyle = 'rgba(180,160,120,.5)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(wx2 + ww/2, wy2 - wh*.3); ctx.lineTo(wx2 + ww/2, wy2 + wh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(wx2, wy2 + wh*.4); ctx.lineTo(wx2 + ww, wy2 + wh*.4); ctx.stroke();
+      }));
+
+      // ─ WEST TWIN TOWERS ─
+      const towerH = bh * .7;
+      const tw2 = bw * .18;
+      [[wx, tw2], [wx + bw - tw2, tw2]].forEach(([tx2, tw3]) => {
+        const tGr = ctx.createLinearGradient(tx2, wy - towerH*.5, tx2 + tw3, wy + bh*.1);
+        tGr.addColorStop(0, '#d8c8a0'); tGr.addColorStop(1, '#b0a080');
+        ctx.fillStyle = tGr; ctx.fillRect(tx2, wy - towerH*.5, tw3, bh*.1 + towerH*.5);
+        // Tower coursing
+        ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = 1;
+        for (let r = 0; r < 10; r++) { const ry = wy - towerH*.5 + r * towerH*.05; ctx.beginPath(); ctx.moveTo(tx2, ry); ctx.lineTo(tx2 + tw3, ry); ctx.stroke(); }
+        // Tower windows
+        for (let tw4 = 0; tw4 < 3; tw4++) {
+          const wy3 = wy - towerH*.4 + tw4 * towerH*.12;
+          ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(tx2 + tw3*.25, wy3, tw3*.5, towerH*.09);
+          ctx.beginPath(); ctx.arc(tx2 + tw3*.5, wy3, tw3*.25, Math.PI, 0); ctx.fill();
+          ctx.fillStyle = 'rgba(160,120,60,.25)'; ctx.fillRect(tx2 + tw3*.27, wy3+1, tw3*.46, towerH*.08);
+        }
+        // Octagonal belfry
+        const bx2 = tx2 - tw3*.1, by2 = wy - towerH*.5 - tw3*.6, bw2 = tw3 * 1.2;
+        ctx.fillStyle = '#c8b890';
+        ctx.beginPath(); ctx.moveTo(bx2+bw2*.15,by2); ctx.lineTo(bx2+bw2*.85,by2); ctx.lineTo(bx2+bw2,by2+bw2*.15); ctx.lineTo(bx2+bw2,by2+tw3*.55-tw3*.15); ctx.lineTo(bx2+bw2*.85,by2+tw3*.55); ctx.lineTo(bx2+bw2*.15,by2+tw3*.55); ctx.lineTo(bx2,by2+tw3*.55-tw3*.15); ctx.lineTo(bx2,by2+bw2*.15); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=1; ctx.stroke();
+        // Spire
+        ctx.fillStyle='#8a8070';
+        ctx.beginPath(); ctx.moveTo(bx2+bw2/2,by2-tw3*1.2); ctx.lineTo(bx2,by2); ctx.lineTo(bx2+bw2,by2); ctx.closePath(); ctx.fill();
+        // Pinnacle
+        ctx.fillStyle='#aaa098'; ctx.fillRect(bx2+bw2/2-1,by2-tw3*1.25,2,4);
+        ctx.fillStyle='rgba(230,190,50,.8)'; ctx.beginPath(); ctx.arc(bx2+bw2/2,by2-tw3*1.26,2,0,Math.PI*2); ctx.fill();
+      });
+
+      // ─ CENTRAL RIDGE ─
+      ctx.fillStyle = '#b0a088';
+      ctx.beginPath(); ctx.moveTo(wx + bw*.12, wy + bh*.1); ctx.lineTo(wx + bw/2, wy + bh*.1 - bh*.08); ctx.lineTo(wx + bw*.88, wy + bh*.1); ctx.closePath(); ctx.fill();
+
+      // ─ KANT'S TOMB APSE (north end) ─
+      ctx.fillStyle = '#b8a888';
+      ctx.beginPath(); ctx.arc(wx + bw/2, wy + bh*.1, bw*.22, Math.PI, 0); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 1; ctx.stroke();
+      // Tomb window
+      ctx.fillStyle = 'rgba(0,0,0,.45)';
+      ctx.beginPath(); ctx.arc(wx + bw/2, wy + bh*.1 - bh*.02, bw*.06, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = 'rgba(200,160,60,.3)';
+      ctx.beginPath(); ctx.arc(wx + bw/2, wy + bh*.1 - bh*.02, bw*.05, Math.PI, 0); ctx.fill();
+
+      // ─ DOORWAY (south entrance) ─
+      ctx.fillStyle = 'rgba(0,0,0,.6)';
+      ctx.fillRect(wx + bw/2 - bw*.06, wy + bh*.9, bw*.12, bh*.1);
+      ctx.beginPath(); ctx.arc(wx + bw/2, wy + bh*.9, bw*.06, Math.PI, 0); ctx.fill();
+      // Door frame
+      ctx.strokeStyle = '#d8c8a0'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(wx + bw/2 - bw*.06, wy + bh); ctx.lineTo(wx + bw/2 - bw*.06, wy + bh*.9); ctx.arc(wx + bw/2, wy + bh*.9, bw*.06, Math.PI, 0); ctx.lineTo(wx + bw/2 + bw*.06, wy + bh); ctx.stroke();
+      // Tympanum relief
+      ctx.fillStyle = 'rgba(200,180,140,.3)'; ctx.beginPath(); ctx.arc(wx + bw/2, wy + bh*.9, bw*.04, Math.PI, 0); ctx.fill();
+      // Door label
+      if (alpha > .5) {
+        ctx.fillStyle = 'rgba(230,190,50,.7)'; ctx.font = '8px "Cinzel",serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText('КОМ КАФЕДРАЛЬНЫЙ', wx + bw/2, wy + bh + 16);
+      }
+      break;
+    }
+
+    case 'tomb': {
+      // Kant's Tomb — open columned portico
+      const tGr = ctx.createLinearGradient(wx, wy, wx, wy + bh);
+      tGr.addColorStop(0, '#d8d0c0'); tGr.addColorStop(1, '#b8b0a0');
+      ctx.fillStyle = tGr; ctx.fillRect(wx, wy, bw, bh);
+      // Column row
+      const numCols = 6;
+      for (let c = 0; c < numCols; c++) {
+        const cx2 = wx + bw * (c + .5) / numCols;
+        // Shaft
+        const cg = ctx.createLinearGradient(cx2 - 4, wy, cx2 + 4, wy);
+        cg.addColorStop(0, '#e8e0d0'); cg.addColorStop(.5, '#c8c0b0'); cg.addColorStop(1, '#b0a898');
+        ctx.fillStyle = cg; ctx.fillRect(cx2 - 4, wy + 4, 8, bh - 8);
+        // Capital
+        ctx.fillStyle = '#d0c8b8'; ctx.fillRect(cx2 - 6, wy + 2, 12, 4);
+        // Base
+        ctx.fillStyle = '#d0c8b8'; ctx.fillRect(cx2 - 6, wy + bh - 6, 12, 4);
+        // Fluting
+        ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = 1;
+        for (let fl = -2; fl <= 2; fl++) { ctx.beginPath(); ctx.moveTo(cx2 + fl * 1.5, wy + 4); ctx.lineTo(cx2 + fl * 1.5, wy + bh - 6); ctx.stroke(); }
+      }
+      // Entablature
+      ctx.fillStyle = '#c8c0b0'; ctx.fillRect(wx - 3, wy, bw + 6, 5);
+      ctx.fillStyle = '#d8d0c0'; ctx.fillRect(wx - 3, wy, bw + 6, 2);
+      // Slab / floor
+      ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(wx + 4, wy + bh - 3, bw - 8, 3);
+      // Label
+      if (alpha > .5) { ctx.fillStyle = 'rgba(230,190,50,.7)'; ctx.font = '8px "Cinzel",serif'; ctx.textAlign = 'center'; ctx.fillText('МОГИЛА КАНТА', wx + bw/2, wy + bh + 14); }
+      break;
+    }
+
+    case 'monument': {
+      const mGr = ctx.createLinearGradient(wx, wy, wx + bw, wy + bh);
+      mGr.addColorStop(0, '#c0b8a8'); mGr.addColorStop(1, '#a0988a');
+      ctx.fillStyle = mGr; ctx.fillRect(wx + bw*.2, wy + bh*.35, bw*.6, bh*.65);
+      // Pedestal detail
+      ctx.fillStyle = '#b0a898'; ctx.fillRect(wx + bw*.1, wy + bh*.6, bw*.8, bh*.4);
+      ctx.fillStyle = '#c8c0b0'; ctx.fillRect(wx, wy + bh*.8, bw, bh*.2);
+      // Steps
+      for (let s = 0; s < 3; s++) ctx.fillRect(wx - s*3, wy + bh - s*4, bw + s*6, 4);
+      // Figure of Kant (silhouette)
+      ctx.fillStyle = '#4a4840';
+      ctx.fillRect(wx + bw*.4, wy, bw*.2, bh*.38); // body
+      ctx.beginPath(); ctx.arc(wx + bw/2, wy - bh*.06, bw*.1, 0, Math.PI*2); ctx.fill(); // head
+      // Coat detail
+      ctx.fillStyle = '#3a3830'; ctx.fillRect(wx + bw*.42, wy + bh*.1, bw*.16, bh*.28);
+      // Label
+      if (alpha > .5) { ctx.fillStyle = 'rgba(230,190,50,.75)'; ctx.font = '8px "Cinzel",serif'; ctx.textAlign = 'center'; ctx.fillText('И. КАНТ', wx + bw/2, wy + bh + 14); }
+      break;
+    }
+
+    case 'pavilion': {
+      const pGr = ctx.createLinearGradient(wx, wy, wx, wy + bh);
+      pGr.addColorStop(0, '#a09888'); pGr.addColorStop(1, '#807868');
+      ctx.fillStyle = pGr; ctx.fillRect(wx + 2, wy + 4, bw - 4, bh - 4);
+      // Roof (hip roof)
+      ctx.fillStyle = '#707060';
+      ctx.beginPath(); ctx.moveTo(wx, wy + 4); ctx.lineTo(wx + bw/2, wy); ctx.lineTo(wx + bw, wy + 4); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#606050';
+      ctx.beginPath(); ctx.moveTo(wx, wy + 4); ctx.lineTo(wx + bw/2, wy); ctx.lineTo(wx + bw, wy + 4); ctx.lineTo(wx + bw, wy + 8); ctx.lineTo(wx + bw/2, wy + 3); ctx.lineTo(wx, wy + 8); ctx.closePath(); ctx.fill();
+      // Windows
+      for (let w2 = 0; w2 < 2; w2++) { ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(wx+6+w2*bw*.45,wy+8,bw*.3,bh*.5); ctx.fillStyle='rgba(100,160,200,.2)'; ctx.fillRect(wx+7+w2*bw*.45,wy+9,bw*.28,bh*.48); }
+      // Columns
+      for (let c = 0; c < 4; c++) { ctx.fillStyle='#b0a898'; ctx.fillRect(wx+2+c*(bw-4)/3,wy+4,3,bh); }
+      break;
+    }
+
+    case 'wall': {
+      const wGr = ctx.createLinearGradient(wx, wy, wx, wy + bh);
+      wGr.addColorStop(0, '#8a8070'); wGr.addColorStop(1, '#6a6050');
+      ctx.fillStyle = wGr; ctx.fillRect(wx, wy, bw, bh);
+      // Coursing
+      ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 1;
+      for (let row = 0; row < 6; row++) {
+        const ry = wy + row * bh/6;
+        ctx.beginPath(); ctx.moveTo(wx, ry); ctx.lineTo(wx + bw, ry); ctx.stroke();
+        const off = row % 2 * bw/4;
+        ctx.beginPath(); ctx.moveTo(wx + off, ry); ctx.lineTo(wx + off, ry + bh/6); ctx.stroke();
+      }
+      // Top coping
+      ctx.fillStyle = '#9a9080'; ctx.fillRect(wx - 2, wy, bw + 4, 4);
+      break;
+    }
+  }
+  ctx.restore();
+}
+
+// Trees as objects (rendered like buildings with Y-sort)
+const TREES = [
+  {tx:8,ty:18,sz:22},{tx:14,ty:8,sz:20},{tx:20,ty:6,sz:24},{tx:32,ty:5,sz:20},{tx:44,ty:6,sz:22},{tx:50,ty:8,sz:20},
+  {tx:50,ty:18,sz:22},{tx:52,ty:30,sz:20},{tx:50,ty:42,sz:22},{tx:50,ty:55,sz:20},{tx:44,ty:62,sz:22},
+  {tx:8,ty:42,sz:22},{tx:8,ty:55,sz:20},{tx:14,ty:62,sz:22},{tx:32,ty:62,sz:20},
+  {tx:10,ty:30,sz:18},{tx:6,ty:17,sz:16},{tx:6,ty:26,sz:18},
+  {tx:16,ty:14,sz:18},{tx:42,ty:14,sz:18},{tx:16,ty:52,sz:18},{tx:42,ty:52,sz:18},
+];
+
+function drawTree(tr, alpha) {
+  const wx = tr.tx * TS - cam.x, wy = tr.ty * TS - cam.y;
+  const r = tr.sz, sway = Math.sin(_t * .55 + tr.tx * .4) * 1.8;
+  ctx.save(); ctx.globalAlpha = alpha;
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(wx + r/2 + 3, wy + r + 4, r*.6, r*.25, 0, 0, Math.PI*2); ctx.fill();
+  // Trunk
+  const tg2 = ctx.createLinearGradient(wx+r/2-4, wy+r*.5, wx+r/2+4, wy+r*.5);
+  tg2.addColorStop(0,'#7a4a1a'); tg2.addColorStop(.5,'#5a3412'); tg2.addColorStop(1,'#4a2c0a');
+  ctx.fillStyle = tg2; ctx.fillRect(wx+r/2-3, wy+r*.4, 6, r*.65);
+  // Root fans
+  ctx.strokeStyle='#5a3412'; ctx.lineWidth=2;
+  for(let rr=0;rr<4;rr++){const ang=rr/4*Math.PI+.3; ctx.beginPath(); ctx.moveTo(wx+r/2,wy+r*.95); ctx.lineTo(wx+r/2+Math.cos(ang)*10,wy+r*.95+Math.sin(ang)*5); ctx.stroke();}
+  // Bark lines
+  ctx.strokeStyle='rgba(0,0,0,.2)'; ctx.lineWidth=1;
+  for(let b=0;b<3;b++){ctx.beginPath(); ctx.moveTo(wx+r/2-3+b*3,wy+r*.45); ctx.quadraticCurveTo(wx+r/2-2+b*2.5,wy+r*.7,wx+r/2-2+b*3,wy+r*.95); ctx.stroke();}
+  // 3-layer canopy
+  [[r*.75,-r*.25,'#1e5014'],[r*.62,-r*.55,'#2a6018'],[r*.48,-r*.82,'#326820']].forEach(([cr,dy,col],li)=>{
+    const sx=wx+r/2+sway*(.4+li*.3), sy=wy+dy;
+    ctx.fillStyle='rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(sx+3,sy+3,cr,cr*.78,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=col; ctx.beginPath(); ctx.ellipse(sx,sy,cr,cr*.8,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.07)'; ctx.beginPath(); ctx.ellipse(sx-cr*.2,sy-cr*.2,cr*.38,cr*.28,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.1)'; for(let p=0;p<3;p++){ctx.beginPath(); ctx.ellipse(sx+Math.cos(p*2.1)*cr*.4,sy+Math.sin(p*2.1)*cr*.3,cr*.18,cr*.16,0,0,Math.PI*2); ctx.fill();}
+  });
+  ctx.fillStyle='#3a6e24'; ctx.beginPath(); ctx.ellipse(wx+r/2+sway*.5-3,wy-r*.85,r*.2,r*.16,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  WORDS DATABASE
+// ═══════════════════════════════════════════════════════════════
+const ALL_WORDS = [
+  {w:'КОШКА',  isNoun:true,  hint:'Животное — отвечает на КТО?'},
+  {w:'ЗАМОК',  isNoun:true,  hint:'Строение — отвечает на ЧТО?'},
+  {w:'ВОЛНА',  isNoun:true,  hint:'Явление природы — ЧТО?'},
+  {w:'СКАЗКА', isNoun:true,  hint:'Жанр — отвечает на ЧТО?'},
+  {w:'БЕЛКА',  isNoun:true,  hint:'Животное — отвечает на КТО?'},
+  {w:'КНИГА',  isNoun:true,  hint:'Предмет — отвечает на ЧТО?'},
+  {w:'БАШНЯ',  isNoun:true,  hint:'Сооружение — отвечает на ЧТО?'},
+  {w:'ЗВЕЗДА', isNoun:true,  hint:'Небесное тело — ЧТО?'},
+  {w:'МОСТ',   isNoun:true,  hint:'Сооружение — отвечает на ЧТО?'},
+  {w:'СОБОР',  isNoun:true,  hint:'Здание — отвечает на ЧТО?'},
+  {w:'КАНТ',   isNoun:true,  hint:'Имя философа — отвечает на КТО?'},
+  {w:'РЕКА',   isNoun:true,  hint:'Водоём — отвечает на ЧТО?'},
+  {w:'ПАРК',   isNoun:true,  hint:'Место — отвечает на ЧТО?'},
+  {w:'БЕЖИТ',    isNoun:false, hint:'Глагол — что делает? Не существительное'},
+  {w:'КРАСИВЫЙ', isNoun:false, hint:'Прилагательное — какой? Не существительное'},
+  {w:'БЫСТРО',   isNoun:false, hint:'Наречие — как? Не существительное'},
+  {w:'ЗОЛОТОЙ',  isNoun:false, hint:'Прилагательное — какой? Не существительное'},
+  {w:'ЛЕТИТ',    isNoun:false, hint:'Глагол — что делает? Не существительное'},
+  {w:'СИНЕЕ',    isNoun:false, hint:'Прилагательное — какое? Не существительное'},
+  {w:'ПОЁТ',     isNoun:false, hint:'Глагол — что делает? Не существительное'},
+  {w:'ШУМИТ',    isNoun:false, hint:'Глагол — что делает? Не существительное'},
+  {w:'ВЫСОКИЙ',  isNoun:false, hint:'Прилагательное — какой? Не существительное'},
+  {w:'ВДРУГ',    isNoun:false, hint:'Наречие — как? Не существительное'},
+  {w:'ПЛЫВЁТ',   isNoun:false, hint:'Глагол — что делает? Не существительное'},
+  {w:'ТИХИЙ',    isNoun:false, hint:'Прилагательное — какой? Не существительное'},
+  {w:'МЧИТСЯ',   isNoun:false, hint:'Глагол — что делает? Не существительное'},
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  WORD CARDS (placed on passable tiles)
+// ═══════════════════════════════════════════════════════════════
+let wordCards = [];
+
+function placeWords() {
+  wordCards = [];
+  const nouns = ALL_WORDS.filter(w => w.isNoun).sort(() => Math.random() - .5).slice(0, 8);
+  const notNouns = ALL_WORDS.filter(w => !w.isNoun).sort(() => Math.random() - .5).slice(0, 7);
+  const chosen = [...nouns, ...notNouns].sort(() => Math.random() - .5);
+  const taken = new Set();
+  chosen.forEach(wd => {
+    let tries = 0;
+    while (tries++ < 300) {
+      const tx = 5 + Math.floor(Math.random() * (MW - 10));
+      const ty = 5 + Math.floor(Math.random() * (MH - 10));
+      const k = `${tx},${ty}`;
+      if (!taken.has(k) && isTilePassable(tx, ty)) {
+        // Not inside a building
+        const wx2 = tx * TS + TS/2, wy2 = ty * TS + TS/2;
+        let insideBuilding = false;
+        for (const b of BUILDINGS) { if (wx2 >= b.tx*TS && wx2 <= (b.tx+b.tw)*TS && wy2 >= b.ty*TS && wy2 <= (b.ty+b.th)*TS) { insideBuilding = true; break; } }
+        if (!insideBuilding) {
+          taken.add(k);
+          wordCards.push({ x: tx * TS + TS/2, y: ty * TS + TS/2, ...wd, collected: false, pulse: Math.random() * Math.PI * 2, bob: Math.random() * Math.PI * 2 });
+          break;
+        }
+      }
+    }
+  });
+}
+
+function drawWordCard(wc) {
+  if (wc.collected) return;
+  const sx = wc.x - cam.x;
+  const sy = wc.y - cam.y - 8 + Math.sin(wc.pulse) * 3.5;
+  if (sx < -80 || sy < -40 || sx > canvas.width + 80 || sy > canvas.height + 40) return;
+  wc.pulse += .05;
+  const glow = .5 + .5 * Math.sin(wc.pulse);
+  const cw = Math.max(60, wc.w.length * 9 + 20), ch = 28;
+  const bx = sx - cw/2, by = sy - ch/2;
+  const near = Math.hypot(player.wx - wc.x, player.wy - wc.y) < TS * 2.5;
+
+  // Halo
+  const hg = ctx.createRadialGradient(sx, sy, 2, sx, sy, near ? 36 : 24);
+  hg.addColorStop(0, `rgba(230,190,50,${glow * .45})`);
+  hg.addColorStop(1, 'rgba(230,190,50,0)');
+  ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(sx, sy, 36, 0, Math.PI*2); ctx.fill();
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,.38)';
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx+3, by+4, cw, ch, 5); else ctx.rect(bx+3, by+4, cw, ch);
+  ctx.fill();
+
+  // Card bg
+  const cg = ctx.createLinearGradient(bx, by, bx, by + ch);
+  cg.addColorStop(0, 'rgba(8,14,30,.97)'); cg.addColorStop(1, 'rgba(5,10,22,.97)');
+  ctx.fillStyle = cg;
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, cw, ch, 5); else ctx.rect(bx, by, cw, ch);
+  ctx.fill();
+
+  // Border
+  ctx.strokeStyle = `rgba(230,190,50,${.38 + glow * .42})`; ctx.lineWidth = 1.5;
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, by, cw, ch, 5); else ctx.rect(bx, by, cw, ch);
+  ctx.stroke();
+
+  // Shine
+  ctx.strokeStyle = `rgba(255,240,150,${glow * .2})`; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(bx+5, by+1.5); ctx.lineTo(bx+cw-5, by+1.5); ctx.stroke();
+
+  // Corner accents
+  ctx.strokeStyle = `rgba(230,190,50,${glow*.5})`; ctx.lineWidth = 1;
+  [[bx,by,'tl'],[bx+cw,by,'tr'],[bx,by+ch,'bl'],[bx+cw,by+ch,'br']].forEach(([cx2,cy2,corner]) => {
+    ctx.beginPath();
+    const dx2 = corner.includes('r') ? -5 : 5, dy2 = corner.includes('b') ? -5 : 5;
+    ctx.moveTo(cx2, cy2+dy2); ctx.lineTo(cx2, cy2); ctx.lineTo(cx2+dx2, cy2);
+    ctx.stroke();
+  });
+
+  // Word text
+  ctx.fillStyle = '#f0e8c0';
+  ctx.font = `bold ${Math.min(12, 110 / wc.w.length)}px "Cinzel",serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(wc.w, sx, sy + 1);
+
+  // Near arrow
+  if (near) {
+    ctx.fillStyle = `rgba(230,190,50,${glow*.8})`;
+    ctx.font = '10px serif'; ctx.textAlign = 'center';
+    ctx.fillText('▼', sx, by + ch + 9 + Math.sin(wc.pulse*2)*2);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PLAYER (detective character)
+// ═══════════════════════════════════════════════════════════════
+const player = {
+  wx: 0, wy: 0, // world position (px)
+  speed: 88, dir: 2, moving: false, step: 0,
+};
+
+function drawPlayer() {
+  const sx = player.wx - cam.x, sy = player.wy - cam.y;
+  const bob = player.moving ? Math.sin(player.step) * 2.2 : 0;
+  ctx.save(); ctx.translate(sx, sy + bob);
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(0, 10, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+
+  const d = player.dir;
+  // Legs (animated)
+  const l1 = player.moving ? Math.sin(player.step)*5 : 0, l2 = -l1;
+  ctx.fillStyle = '#282050'; ctx.fillRect(-5, 5+l1, 4, 8); ctx.fillRect(1, 5+l2, 4, 8);
+  ctx.fillStyle = '#181030'; ctx.fillRect(-6, 12+l1, 5, 3); ctx.fillRect(1, 12+l2, 5, 3);
+
+  // Overcoat body
+  const cg = ctx.createLinearGradient(-8,-10,8,12);
+  cg.addColorStop(0,'#2e3870'); cg.addColorStop(.5,'#1e2858'); cg.addColorStop(1,'#141c40');
+  ctx.fillStyle = cg; ctx.fillRect(-8,-10,16,16);
+  // Lapels
+  ctx.fillStyle = '#3a4880'; ctx.fillRect(-6,-8,4,7); ctx.fillRect(2,-8,4,7);
+  // Waistcoat
+  ctx.fillStyle = '#9a7830'; ctx.fillRect(-3,-4,6,8);
+  // Buttons
+  ctx.fillStyle = '#c09040'; for (let b=0;b<3;b++) { ctx.beginPath(); ctx.arc(0,-2+b*3.5,1,0,Math.PI*2); ctx.fill(); }
+  // Belt
+  ctx.fillStyle = '#7a5818'; ctx.fillRect(-8,4,16,2);
+  ctx.fillStyle = '#c09030'; ctx.fillRect(-2,4,4,2);
+
+  // Arms + magnifier
+  ctx.fillStyle = '#2e3870';
+  if (d===0) { ctx.fillRect(8,-8,4,10); drawMag(14,-2); }
+  else if (d===2) { ctx.fillRect(-12,-8,4,10); drawMag(-17,-2); }
+  else { ctx.fillRect(-12,-6,4,10); ctx.fillRect(8,-6,4,10); drawMag(10,-4); }
+
+  // Head (skin)
+  ctx.fillStyle = '#d8a070'; ctx.fillRect(-6,-20,12,12);
+  ctx.fillStyle = '#c89060'; ctx.fillRect(-6,-12,12,3);// jaw shadow
+  // Hair
+  ctx.fillStyle = '#180e04'; ctx.fillRect(-6,-20,12,4);
+  ctx.fillRect(-8,-18,2,6); ctx.fillRect(6,-18,2,6);
+  // Eyes
+  ctx.fillStyle = '#180808';
+  if(d===0){ctx.fillRect(3,-16,2,2); ctx.fillRect(5,-12,2,1);}
+  else if(d===2){ctx.fillRect(-5,-16,2,2); ctx.fillRect(-7,-12,2,1);}
+  else{ctx.fillRect(-3,-16,2,2); ctx.fillRect(1,-16,2,2);}
+  // Moustache
+  ctx.fillStyle='#180e04';
+  if(d===1||d===3){ctx.fillRect(-3,-11,6,2);}
+  // Detective hat
+  ctx.fillStyle='#1a1808'; ctx.fillRect(-8,-24,16,5);
+  ctx.fillRect(-5,-30,10,8);
+  ctx.fillStyle='#c08820'; ctx.fillRect(-5,-24,10,2); // hat band
+  // Hat brim highlight
+  ctx.fillStyle='rgba(255,255,255,.08)'; ctx.fillRect(-7,-24,14,1);
+  ctx.restore();
+}
+
+function drawMag(ox,oy){
+  ctx.strokeStyle='#c0a030'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(ox,oy-3,5,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='rgba(140,200,220,.3)'; ctx.beginPath(); ctx.arc(ox,oy-3,4,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(255,240,150,.4)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(ox-1,oy-4,2,0,Math.PI*2); ctx.stroke();
+  ctx.strokeStyle='#806020'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(ox+3,oy+1); ctx.lineTo(ox+7,oy+5); ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CAMERA (smooth follow)
+// ═══════════════════════════════════════════════════════════════
+const cam = { x: 0, y: 0 };
+function updateCamera() {
+  cam.x += (player.wx - canvas.width/2 - cam.x) * 0.1;
+  cam.y += (player.wy - canvas.height/2 - cam.y) * 0.1;
+  cam.x = Math.max(0, Math.min(cam.x, MW*TS - canvas.width));
+  cam.y = Math.max(0, Math.min(cam.y, MH*TS - canvas.height));
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════════════════════════════
+const particles = [];
+function spawnParticles(x, y, color, n=12) {
+  for (let i=0;i<n;i++) {
+    const ang=Math.random()*Math.PI*2, spd=30+Math.random()*60;
+    particles.push({x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-22,life:1,decay:.028+Math.random()*.02,r:2+Math.random()*3,color,text:null});
+  }
+}
+function spawnText(x,y,text,color){
+  particles.push({x,y,vx:(Math.random()-.5)*16,vy:-52,life:1,decay:.016,r:0,color,text,fs:13});
+}
+function updateParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=58*dt;p.life-=p.decay;if(p.life<=0)particles.splice(i,1);}
+}
+function drawParticles(){
+  particles.forEach(p=>{
+    const sx=p.x-cam.x,sy=p.y-cam.y;
+    ctx.globalAlpha=Math.max(0,p.life);
+    if(p.text){ctx.fillStyle=p.color;ctx.font=`bold ${p.fs||12}px Cinzel,serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(p.text,sx,sy);}
+    else{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(sx,sy,p.r*p.life,0,Math.PI*2);ctx.fill();}
+  });
+  ctx.globalAlpha=1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ATMOSPHERE (water reflections, lantern glows, vignette)
+// ═══════════════════════════════════════════════════════════════
+function drawAtmosphere(){
+  const W=canvas.width,H=canvas.height;
+  // Lantern glows in world space
+  [[9,half2-3],[9,half2+3],[MW-10,half2-3],[MW-10,half2+3]].forEach(([lx,ly])=>{
+    const sx=lx*TS+TS/2-cam.x, sy=ly*TS+4-cam.y;
+    if(sx<-80||sy<-80||sx>W+80||sy>H+80) return;
+    const flicker=0.7+0.3*Math.sin(_t*4+lx+ly);
+    const lg=ctx.createRadialGradient(sx,sy,2,sx,sy,50*flicker);
+    lg.addColorStop(0,`rgba(255,200,80,${.25*flicker})`); lg.addColorStop(1,'rgba(255,120,20,0)');
+    ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(sx,sy,52,0,Math.PI*2); ctx.fill();
+  });
+  // Vignette
+  const vig=ctx.createRadialGradient(W/2,H/2,H*.22,W/2,H/2,H*.85);
+  vig.addColorStop(0,'rgba(0,0,0,0)'); vig.addColorStop(1,'rgba(0,0,0,.62)');
+  ctx.fillStyle=vig; ctx.fillRect(0,0,W,H);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════════════════════════════════════
+let gameState='start', timeLeft=30, foundNouns=[], totalScore=0;
+let timerInterval=null, keys={}, touchDir={up:false,down:false,left:false,right:false};
+const half2 = Math.floor(MH/2);
+
+function startGame(){
+  gameState='playing'; timeLeft=30; foundNouns=[]; totalScore=0;
+  placeWords();
+  player.wx=MW/2*TS+TS/2; player.wy=MH/2*TS+TS/2;
+  updateFoundUI(); startTimer();
+  document.getElementById('ov-start').classList.add('hidden');
+  document.getElementById('ov-win').classList.add('hidden');
+  document.getElementById('ov-lose').classList.add('hidden');
+}
+
+function startTimer(){
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    if(gameState!=='playing') return;
+    timeLeft=Math.max(0,timeLeft-1);
+    updateTimerUI();
+    if(timeLeft<=0) endGame(false);
+  },1000);
+}
+
+function updateTimerUI(){
+  const arc=document.getElementById('timer-arc'), label=document.getElementById('timer-num');
+  arc.style.strokeDashoffset=(175*(1-timeLeft/30)).toFixed(2);
+  label.textContent=timeLeft;
+  const danger=timeLeft<=8;
+  arc.classList.toggle('danger',danger); label.classList.toggle('danger',danger);
+}
+
+function updateFoundUI(){
+  document.getElementById('found-count').textContent=foundNouns.length+' / 3';
+  for(let i=0;i<3;i++){
+    const sl=document.getElementById('slot'+i);
+    if(foundNouns[i]){sl.textContent=foundNouns[i];sl.classList.add('filled');}
+    else{sl.textContent='—';sl.classList.remove('filled');}
+  }
+}
+
+function checkAutoCollect(){
+  if(gameState!=='playing') return;
+  wordCards.forEach(wc=>{
+    if(wc.collected) return;
+    if(Math.hypot(player.wx-wc.x,player.wy-wc.y)<TS*1.15) collectCard(wc);
+  });
+}
+
+function collectCard(wc){
+  wc.collected=true;
+  if(wc.isNoun){
+    foundNouns.push(wc.w); totalScore+=100+timeLeft*6;
+    document.getElementById('score-disp').textContent=totalScore;
+    spawnParticles(wc.x,wc.y,'#e6be32',16); spawnText(wc.x,wc.y-12,'+100','#80ff80');
+    showFeedback(true,wc.w,wc.hint); updateFoundUI();
+    if(foundNouns.length>=3) setTimeout(()=>endGame(true),700);
+  } else {
+    timeLeft=Math.max(0,timeLeft-4); updateTimerUI();
+    spawnParticles(wc.x,wc.y,'#ff4040',10); spawnText(wc.x,wc.y-12,'−4 сек','#ff6060');
+    showFeedback(false,wc.w,wc.hint);
+    if(timeLeft<=0) setTimeout(()=>endGame(false),700);
+  }
+}
+
+function showFeedback(isNoun,word,hint){
+  const fb=document.getElementById('feedback'), fi=fb.querySelector('.fb-inner');
+  fi.style.setProperty('--fc',isNoun?'#80ff80':'#ff6060');
+  document.getElementById('fb-icon').textContent=isNoun?'✅':'❌';
+  document.getElementById('fb-title').textContent=isNoun?'Существительное!':'Не существительное!';
+  document.getElementById('fb-word').textContent=hint;
+  fb.classList.remove('hide'); fb.classList.add('show');
+  setTimeout(()=>{fb.classList.remove('show');fb.classList.add('hide');},1900);
+}
+
+function endGame(won){
+  gameState=won?'win':'lose'; clearInterval(timerInterval);
+  if(won){
+    const we=document.getElementById('win-words');
+    we.innerHTML=foundNouns.map(w=>`<div style="background:rgba(10,50,15,.9);border:1px solid rgba(80,200,80,.5);border-radius:8px;padding:8px 16px;font-family:'Cinzel',serif;font-size:14px;color:#80ff80;letter-spacing:2px;">${w}</div>`).join('');
+    document.getElementById('win-sub').textContent=`Блестяще! Счёт: ${totalScore} очков`;
+    document.getElementById('ov-win').classList.remove('hidden');
+  } else {
+    document.getElementById('lose-sub').textContent=`Найдено ${foundNouns.length} из 3. Счёт: ${totalScore}`;
+    document.getElementById('ov-lose').classList.remove('hidden');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MAIN RENDER LOOP
+// ═══════════════════════════════════════════════════════════════
+let lastTime=0;
+
+function loop(ts){
+  const dt=Math.min((ts-lastTime)/1000,.05); lastTime=ts; _t=ts/1000;
+
+  if(canvas.width!==window.innerWidth||canvas.height!==window.innerHeight){
+    canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  }
+  ctx.imageSmoothingEnabled=false;
+
+  // ── MOVEMENT ──
+  if(gameState==='playing'){
+    let mvx=0,mvy=0;
+    if(keys['ArrowUp']||keys['KeyW']||touchDir.up){mvy=-1;player.dir=3;}
+    if(keys['ArrowDown']||keys['KeyS']||touchDir.down){mvy=1;player.dir=1;}
+    if(keys['ArrowLeft']||keys['KeyA']||touchDir.left){mvx=-1;player.dir=2;}
+    if(keys['ArrowRight']||keys['KeyD']||touchDir.right){mvx=1;player.dir=0;}
+    if(mvx&&mvy){mvx*=.707;mvy*=.707;}
+    player.moving=!!(mvx||mvy);
+
+    if(player.moving){
+      player.step+=dt*8;
+      const nx=player.wx+mvx*player.speed*dt, ny=player.wy+mvy*player.speed*dt;
+      const ntx=Math.floor(nx/TS), nty=Math.floor(ny/TS);
+      const ctx2=Math.floor(player.wx/TS);
+      const cty2=Math.floor(player.wy/TS);
+      // Check building collision
+      let inBld=false;
+      for(const b of BUILDINGS){if(nx/TS>=b.tx&&nx/TS<=b.tx+b.tw&&player.wy/TS>=b.ty&&player.wy/TS<=b.ty+b.th){inBld=true;break;}}
+      let inBld2=false;
+      for(const b of BUILDINGS){if(player.wx/TS>=b.tx&&player.wx/TS<=b.tx+b.tw&&ny/TS>=b.ty&&ny/TS<=b.ty+b.th){inBld2=true;break;}}
+
+      if(isTilePassable(ntx,cty2)&&!inBld) player.wx=Math.max(TS/2,Math.min(nx,(MW-.5)*TS));
+      if(isTilePassable(ctx2,nty)&&!inBld2) player.wy=Math.max(TS/2,Math.min(ny,(MH-.5)*TS));
+    }
+    checkAutoCollect();
+    updateParticles(dt);
+  }
+  updateCamera();
+
+  // ── DRAW TILES ──
+  ctx.fillStyle='#050a12'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const stx=Math.max(0,Math.floor(cam.x/TS)), sty=Math.max(0,Math.floor(cam.y/TS));
+  const enx=Math.min(MW,stx+Math.ceil(canvas.width/TS)+2), eny=Math.min(MH,sty+Math.ceil(canvas.height/TS)+2);
+  for(let ty=sty;ty<eny;ty++) for(let tx=stx;tx<enx;tx++){
+    drawTile(tx,ty,map[ty][tx],(tx*TS-cam.x)|0,(ty*TS-cam.y)|0);
+  }
+
+  // ── Y-SORTED RENDERING (buildings, trees, player, cards) ──
+  // Collect all renderable objects with their world Y for sorting
+  const renderables = [];
+
+  // Trees
+  TREES.forEach(tr => renderables.push({ y: tr.ty * TS + tr.sz, type: 'tree', data: tr }));
+
+  // Buildings
+  BUILDINGS.forEach(b => renderables.push({ y: (b.ty + b.th) * TS, type: 'building', data: b }));
+
+  // Word cards
+  wordCards.forEach(wc => { if (!wc.collected) renderables.push({ y: wc.y, type: 'card', data: wc }); });
+
+  // Player
+  renderables.push({ y: player.wy, type: 'player', data: null });
+
+  // Sort by Y (painter's algorithm)
+  renderables.sort((a, b2) => a.y - b2.y);
+
+  renderables.forEach(r => {
+    if (r.type === 'tree') {
+      // Semi-transparent if player is behind
+      const b = r.data;
+      const playerBehind = player.wy < b.ty * TS + b.sz && player.wy > (b.ty - 1) * TS
+                         && Math.abs(player.wx - (b.tx * TS + TS/2)) < b.sz;
+      drawTree(b, playerBehind ? 0.35 : 1.0);
+
+    } else if (r.type === 'building') {
+      const b = r.data;
+      // Check if player is "behind" this building (player Y is less than building foot, more than building top)
+      const buildingFootY = (b.ty + b.th) * TS;
+      const buildingTopY = b.ty * TS;
+      const playerInsideXRange = player.wx >= (b.tx - 1) * TS && player.wx <= (b.tx + b.tw + 1) * TS;
+      const playerBehind = playerInsideXRange && player.wy > buildingTopY && player.wy < buildingFootY;
+      const alpha = playerBehind ? 0.32 : 1.0;
+      drawBuilding(b, alpha);
+
+    } else if (r.type === 'card') {
+      drawWordCard(r.data);
+
+    } else if (r.type === 'player') {
+      drawParticles();
+      drawPlayer();
+    }
+  });
+
+  drawAtmosphere();
+  requestAnimationFrame(loop);
+}
+
+// ── INPUT ──
+document.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+
+['up','down','left','right'].forEach(dir=>{
+  const btn=document.getElementById('dp-'+dir);
+  const s=()=>{touchDir[dir]=true;btn.classList.add('pressed')};
+  const e=()=>{touchDir[dir]=false;btn.classList.remove('pressed')};
+  btn.addEventListener('touchstart',s,{passive:true}); btn.addEventListener('touchend',e,{passive:true});
+  btn.addEventListener('touchcancel',e,{passive:true}); btn.addEventListener('mousedown',s);
+  btn.addEventListener('mouseup',e); btn.addEventListener('mouseleave',e);
+});
+
+document.getElementById('btn-start').addEventListener('click',startGame);
+document.getElementById('btn-again').addEventListener('click',startGame);
+document.getElementById('btn-retry').addEventListener('click',startGame);
+
+// ── INIT ──
+canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+buildMap();
+placeWords();
+player.wx=MW/2*TS+TS/2; player.wy=MH/2*TS+TS/2;
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
