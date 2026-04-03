@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js');
+    });
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Тридевятое Царство — Вкус живого слова</title>
@@ -453,13 +460,6 @@ const cb=document.getElementById('cookie');
 if(!localStorage.getItem('ck-consent'))setTimeout(()=>cb.classList.add('show'),600);
 document.getElementById('cok').onclick=()=>{localStorage.setItem('ck-consent','y');cb.style.transform='translateY(100%)'};
 document.getElementById('cno').onclick=()=>{localStorage.setItem('ck-consent','n');cb.style.transform='translateY(100%)'};
-</script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js');
-    });
-  }
 </script>
 </body>
 </html>
